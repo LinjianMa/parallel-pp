@@ -1,5 +1,5 @@
 
-#include "../common.h"
+#include "utils/common.h"
 #include <ctf.hpp>
 
 using namespace CTF;
@@ -8,34 +8,6 @@ template <typename dtype, class Optimizer>
 CPD<dtype, Optimizer>::CPD(int order, int size_, int r, World &dw)
     : Decomposition<dtype>(order, size_, r, dw) {
   optimizer = new Optimizer(order, r, dw);
-
-  // make the char seq_V
-  seq_V[order] = '\0';
-  for (int j = 0; j < order; j++) {
-    seq_V[j] = 'a' + j;
-  }
-}
-
-template <typename dtype, class Optimizer>
-CPD<dtype, Optimizer>::CPD(int order, int size_, int r, int update_rank,
-                           World &dw)
-    : Decomposition<dtype>(order, size_, r, dw) {
-  // NOTE: this constructor is only for the optimizer with low rank updates
-  optimizer = new Optimizer(order, r, update_rank, dw);
-
-  // make the char seq_V
-  seq_V[order] = '\0';
-  for (int j = 0; j < order; j++) {
-    seq_V[j] = 'a' + j;
-  }
-}
-
-template <typename dtype, class Optimizer>
-CPD<dtype, Optimizer>::CPD(int order, int size_, int r, int update_rank,
-                           int randomsvd, World &dw)
-    : Decomposition<dtype>(order, size_, r, dw) {
-  // NOTE: this constructor is only for the optimizer with low rank updates
-  optimizer = new Optimizer(order, r, update_rank, randomsvd, dw);
 
   // make the char seq_V
   seq_V[order] = '\0';
@@ -125,9 +97,10 @@ bool CPD<dtype, Optimizer>::als(double tol, double timelimit, int maxsweep,
                 << "\n"; // Headings for file
   }
 
-  while (int(sweeps) <= maxsweep) {
+  while (sweeps < maxsweep) {
     // print the gradient norm
-    if (iters % resprint == 0 || sweeps >= maxsweep || sweeps == 0) {
+    if (sweeps - int(sweeps) == 0 &&
+        (int(sweeps) % resprint == 0 || sweeps == 0)) {
       double st_time1 = MPI_Wtime();
       update_gradnorm();
       // residual

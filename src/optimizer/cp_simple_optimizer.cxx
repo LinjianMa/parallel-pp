@@ -1,6 +1,6 @@
 
 // #include "decomposition.h"
-#include "../../common.h"
+#include "../utils/common.h"
 #include <ctf.hpp>
 
 using namespace CTF;

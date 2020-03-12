@@ -1,95 +1,93 @@
 
-#include "../src/decomposition.h"
-#include "../src/CP.h"
-#include "../src/optimizer/cp_als_optimizer.h"
-#include "../src/optimizer/cp_simple_optimizer.h"
-#include "../src/optimizer/cp_dt_optimizer.h"
-#include "../src/optimizer/cp_msdt_optimizer.h"
-
-
+#include "../include/cpd.hpp"
 #include <ctf.hpp>
-
 
 using namespace CTF;
 
-void TEST_decomposition(World & dw) {
+void TEST_decomposition(World &dw) {
 
-    // test dimension
-    Decomposition<double> decom(3,5,2,dw);
-    cout << decom.order << endl;
-    assert(decom.order == 3);
-    assert(decom.rank[0] == 2);
+  // test dimension
+  Decomposition<double> decom(3, 5, 2, dw);
+  cout << decom.order << endl;
+  assert(decom.order == 3);
+  assert(decom.rank[0] == 2);
 
-    // test init
-    int lens[3];
-    for (int i=0; i<3; i++) lens[i]=5;
-    Tensor<> *V = new Tensor<>(3,lens,dw);
-    V->fill_random(0,1);
-    Matrix<> *W = new Matrix<>[3];
-    for (int i=0; i<3; i++) {
-        W[i] = Matrix<>(5,2,dw);
-        W[i].fill_random(0,1); 
-    }
-    decom.Init(V,W);
-    decom.print_W(0);
-    decom.print_W(1);   
+  // test init
+  int lens[3];
+  for (int i = 0; i < 3; i++)
+    lens[i] = 5;
+  Tensor<> *V = new Tensor<>(3, lens, dw);
+  V->fill_random(0, 1);
+  Matrix<> *W = new Matrix<>[3];
+  for (int i = 0; i < 3; i++) {
+    W[i] = Matrix<>(5, 2, dw);
+    W[i].fill_random(0, 1);
+  }
+  decom.Init(V, W);
+  decom.print_W(0);
+  decom.print_W(1);
 }
 
-void TEST_CPD(World & dw) {
+void TEST_CPD(World &dw) {
+  cout << "Test CPD" << endl;
 
-    // test dimension
-    CPD<double, CPDTOptimizer<double>> decom(6,13,5,dw);
-    cout << decom.order << endl;
-    assert(decom.order == 6);
-    assert(decom.rank[0] == 5);
+  // test dimension
+  CPD<double, CPSimpleOptimizer<double>> decom(3, 13, 5, dw);
+  CPD<double, CPDTOptimizer<double>> decom_dt(3, 13, 5, dw);
 
-    // test init
-    int lens[6];
-    for (int i=0; i<6; i++) lens[i]=13;
-    Tensor<> *V = new Tensor<>(6,lens,dw);
-    V->fill_random(0,1);
-    Matrix<> *W = new Matrix<>[6];
-    for (int i=0; i<6; i++) {
-        W[i] = Matrix<>(13,5,dw);
-        W[i].fill_random(0,1); 
-    }
-    decom.Init(V,W);
-    // decom.print_W(0);
-    // decom.print_W(1);    
-    // decom.print_grad(0);
-    // decom.print_grad(1);
+  assert(decom.order == 3);
+  assert(decom.rank[0] == 5);
 
-    ofstream Plot_File("results/test.csv"); 
+  assert(decom_dt.order == 3);
+  assert(decom_dt.rank[0] == 5);
 
-    // test als
-    decom.als(1e-5, 1000, 30, 100, Plot_File);
+  // test init
+  int lens[3];
+  for (int i = 0; i < 3; i++)
+    lens[i] = 13;
+
+  Tensor<> *V = new Tensor<>(3, lens, dw);
+  V->fill_random(0, 1);
+
+  Matrix<> *W = new Matrix<>[3];
+  Matrix<> *W_dt = new Matrix<>[3];
+
+  for (int i = 0; i < 3; i++) {
+    W[i] = Matrix<>(13, 5, dw);
+    W_dt[i] = Matrix<>(13, 5, dw);
+
+    W[i].fill_random(0, 1);
+    W_dt[i]["ij"] = W[i]["ij"];
+  }
+
+  ofstream Plot_File("results/test.csv");
+
+  decom.Init(V, W);
+  decom.als(1e-5, 1000, 10, 100, Plot_File);
+
+  decom_dt.Init(V, W_dt);
+  decom_dt.als(1e-5, 1000, 10, 100, Plot_File);
+
+  for (int i = 0; i < V->order; i++) {
+    Matrix<> diff = Matrix<>(13, 5, dw);
+    diff["ij"] = W[i]["ij"] - W_dt[i]["ij"];
+    double diff_norm = diff.norm2();
+    assert(diff_norm < 1e-8);
+  }
 }
 
-// #ifndef TEST_SUITE
-/**
- * \brief Forms N-by-N DFT matrix A and inverse-dft iA and checks A*iA=I
- */
-int main(int argc, char ** argv){
-    int logn;
-    int64_t n;
+int main(int argc, char **argv) {
+  int logn;
+  int64_t n;
 
-    MPI_Init(&argc, &argv);
+  MPI_Init(&argc, &argv);
 
-    World dw(argc, argv);
+  World dw(argc, argv);
 
-    // TEST_decomposition(dw);
-    TEST_CPD(dw);
+  // TEST_decomposition(dw);
+  TEST_CPD(dw);
 
+  cout << "All tests passed" << endl;
 
-    MPI_Finalize();
-
+  MPI_Finalize();
 }
-/**
- * @} 
- * @}
- */
-
-
-// #endif
-
-

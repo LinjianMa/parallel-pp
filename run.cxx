@@ -1,12 +1,4 @@
-#include "src/CP.h"
-#include "src/decomposition.h"
-#include "src/optimizer/cp_als_optimizer.h"
-#include "src/optimizer/cp_dt_optimizer.h"
-#include "src/optimizer/cp_msdt_optimizer.h"
-#include "src/optimizer/cp_simple_optimizer.h"
-
-#include "common.h"
-//#define ERR_REPORT
+#include "include/cpd.hpp"
 
 #ifndef TEST_SUITE
 

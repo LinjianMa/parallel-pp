@@ -1,6 +1,5 @@
 
-// #include "decomposition.h"
-#include "../../common.h"
+#include "../utils/common.h"
 #include <ctf.hpp>
 
 using namespace CTF;
@@ -43,18 +42,11 @@ template <typename dtype> CPDTOptimizer<dtype>::~CPDTOptimizer() {
   // delete S;
 }
 
-template <typename dtype> void CPDTOptimizer<dtype>::update_left_index() {
-  int order = this->order;
-  left_index = (left_index + order - 1) % order;
-}
-
 template <typename dtype>
 void CPDTOptimizer<dtype>::update_indexes(vector<int> &indexes,
                                           int left_index) {
-  int order = this->order;
-
   int j = 0;
-  for (int i = left_index + 1; i < order; i++) {
+  for (int i = left_index + 1; i < this->order; i++) {
     indexes[j] = i;
     j++;
   }
@@ -181,6 +173,7 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index) {
   }
   mttkrp_map[index] = Tensor<dtype>(strlen(index_char), lens, *dw);
 
+  // TODO: this needs to be implemented with a local version.
   mttkrp_map[index][index_char] = mttkrp_map[parent_index][parent_index] *
                                   this->W[indexes[W_index]][mat_index];
 }
@@ -206,8 +199,6 @@ template <typename dtype> double CPDTOptimizer<dtype>::step() {
   // iteration on W[i]
   for (int i = 0; i < indexes.size(); i++) {
 
-    if (first_subtree && i < special_index)
-      continue;
     if (!first_subtree && i > special_index)
       break;
     /*  construct Matrix M
