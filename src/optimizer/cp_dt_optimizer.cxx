@@ -1,5 +1,6 @@
 
 #include "../utils/common.h"
+#include "../utils/dimension_tree.h"
 #include <ctf.hpp>
 
 using namespace CTF;
@@ -7,6 +8,8 @@ using namespace CTF;
 template <typename dtype>
 CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw)
     : CPOptimizer<dtype>(order, r, dw) {
+
+  dt = new DimensionTree(order);
 
   // make the char seq_V
   seq_V[order] = '\0';
@@ -16,9 +19,6 @@ CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw)
     seq_tree_top[j] = seq_V[j];
   }
   seq_tree_top[order - 1] = '*';
-
-  // construct the tree
-  Construct_Dimension_Tree();
 
   // initialize the indexes
   indexes = vector<int>(order - 1, 0);
@@ -32,7 +32,7 @@ CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw)
   left_index = order - 1;
   left_index1 = left_index;
   left_index2 = (left_index + order - 1) % order;
-  update_indexes(indexes2, left_index2);
+  dt->update_indexes(indexes2, left_index2);
   special_index = 0;
 
   first_subtree = true;
@@ -40,79 +40,6 @@ CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw)
 
 template <typename dtype> CPDTOptimizer<dtype>::~CPDTOptimizer() {
   // delete S;
-}
-
-template <typename dtype>
-void CPDTOptimizer<dtype>::update_indexes(vector<int> &indexes,
-                                          int left_index) {
-  int j = 0;
-  for (int i = left_index + 1; i < this->order; i++) {
-    indexes[j] = i;
-    j++;
-  }
-  for (int i = 0; i < left_index; i++) {
-    indexes[j] = i;
-    j++;
-  }
-}
-
-template <typename dtype>
-void CPDTOptimizer<dtype>::Construct_Dimension_Tree() {
-  int order = this->order;
-  vector<int> top_node = vector<int>(order - 1);
-  for (int i = 0; i < top_node.size(); i++) {
-    top_node[i] = i;
-  }
-
-  Construct_Subtree(top_node);
-}
-
-template <typename dtype>
-void CPDTOptimizer<dtype>::Construct_Subtree(vector<int> top_node) {
-  Right_Subtree(top_node);
-
-  vector<int> child_node = vector<int>(top_node.size() - 1);
-  for (int i = 0; i < child_node.size(); i++) {
-    child_node[i] = top_node[i];
-  }
-
-  vector<int> mat_index = {top_node[top_node.size() - 1]};
-
-  string child_seq, top_seq, mat_seq;
-  vec2str(child_node, child_seq);
-  vec2str(top_node, top_seq);
-  vec2str(mat_index, mat_seq);
-
-  parent[child_seq] = top_seq;
-  contract_index[child_seq] = mat_seq;
-
-  if (child_node.size() > 1) {
-    Construct_Subtree(child_node);
-  }
-}
-
-template <typename dtype>
-void CPDTOptimizer<dtype>::Right_Subtree(vector<int> top_node) {
-  // construct the right tree
-  vector<int> child_node = vector<int>(top_node.size() - 1);
-  for (int i = 0; i < child_node.size(); i++) {
-    child_node[i] = top_node[i];
-  }
-  child_node[child_node.size() - 1] = top_node[top_node.size() - 1];
-
-  vector<int> mat_index = {top_node[top_node.size() - 2]};
-
-  string child_seq, top_seq, mat_seq;
-  vec2str(child_node, child_seq);
-  vec2str(top_node, top_seq);
-  vec2str(mat_index, mat_seq);
-
-  parent[child_seq] = top_seq;
-  contract_index[child_seq] = mat_seq;
-
-  if (child_node.size() > 1) {
-    Right_Subtree(child_node);
-  }
 }
 
 template <typename dtype>
@@ -156,12 +83,12 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index) {
   World *dw = this->world;
   char const *index_char = index.c_str();
 
-  char const *parent_index = parent[index].c_str();
+  char const *parent_index = dt->parent[index].c_str();
   if (mttkrp_map.find(parent_index) == mttkrp_map.end()) {
     mttkrp_map_DT(parent_index);
   }
   // get the modindexe of W
-  char const *mat_index = contract_index[index].c_str();
+  char const *mat_index = dt->contract_index[index].c_str();
   int W_index = int(mat_index[0] - 'a');
   int lens[strlen(index_char)];
 

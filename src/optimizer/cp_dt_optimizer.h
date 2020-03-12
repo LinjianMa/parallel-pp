@@ -1,8 +1,10 @@
 #ifndef __CP_DT_OPTIMIZER_H__
 #define __CP_DT_OPTIMIZER_H__
 
+#include "../utils/dimension_tree.h"
 #include <ctf.hpp>
 #include <fstream>
+
 using namespace CTF;
 
 template <typename dtype> class CPDTOptimizer : public CPOptimizer<dtype> {
@@ -13,21 +15,6 @@ public:
   ~CPDTOptimizer();
 
   double step();
-
-  /**
-   * \brief Update the indexes for the contraction.
-   */
-  void update_indexes(vector<int> &indexes, int left_index);
-
-  /**
-   * \brief Construct the dimension tree.
-   * Note that this function will not construct the first level trees.
-   */
-  void Construct_Dimension_Tree();
-
-  void Construct_Subtree(vector<int> top_node);
-
-  void Right_Subtree(vector<int> top_node);
 
   /**
    * \brief First level MTTKRP contractions.
@@ -49,8 +36,6 @@ public:
 
   // maps
   map<string, Tensor<dtype>> mttkrp_map;
-  map<string, string> parent;
-  map<string, string> contract_index;
 
   // indices that update in one step
   bool first_subtree;
@@ -66,6 +51,9 @@ public:
   int left_index1;
   int left_index2;
   int special_index;
+
+  // dimension tree
+  DimensionTree *dt = NULL;
 };
 
 #include "cp_dt_optimizer.cxx"

@@ -10,11 +10,11 @@ FCXX=$(CXX) $(CXXFLAGS)
 
 all: test run
 
-run: run.cxx $(ODIR)/common.o Makefile config.mk
-	$(FCXX) $< $(ODIR)/common.o -o $@ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+run: run.cxx $(ODIR)/*.o Makefile config.mk
+	$(FCXX) $< $(ODIR)/*.o -o $@ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
-test: $(TDIR)/test_decomposition.cxx $(ODIR)/common.o Makefile config.mk
-	$(FCXX) $< $(ODIR)/common.o -o $@ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+test: $(TDIR)/test_decomposition.cxx $(ODIR)/*.o Makefile config.mk
+	$(FCXX) $< $(ODIR)/*.o -o $@ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
 $(ODIR)/common.o: $(UDIR)/common.cxx $(UDIR)/common.h config.mk
 	$(FCXX) -c $< -o $@ $(INCLUDE_PATH)
