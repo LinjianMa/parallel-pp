@@ -1,5 +1,6 @@
 
 #include "../include/cpd.hpp"
+#include "test_local_mttkrp.cxx"
 #include <ctf.hpp>
 
 using namespace CTF;
@@ -34,12 +35,16 @@ void TEST_CPD(World &dw) {
   // test dimension
   CPD<double, CPSimpleOptimizer<double>> decom(3, 13, 5, dw);
   CPD<double, CPDTOptimizer<double>> decom_dt(3, 13, 5, dw);
+  CPD<double, CPLocalOptimizer<double>> decom_local(3, 13, 5, dw);
 
   assert(decom.order == 3);
   assert(decom.rank[0] == 5);
 
   assert(decom_dt.order == 3);
   assert(decom_dt.rank[0] == 5);
+
+  assert(decom_local.order == 3);
+  assert(decom_local.rank[0] == 5);
 
   // test init
   int lens[3];
@@ -51,13 +56,16 @@ void TEST_CPD(World &dw) {
 
   Matrix<> *W = new Matrix<>[3];
   Matrix<> *W_dt = new Matrix<>[3];
+  Matrix<> *W_local = new Matrix<>[3];
 
   for (int i = 0; i < 3; i++) {
     W[i] = Matrix<>(13, 5, dw);
     W_dt[i] = Matrix<>(13, 5, dw);
+    W_local[i] = Matrix<>(13, 5, dw);
 
     W[i].fill_random(0, 1);
     W_dt[i]["ij"] = W[i]["ij"];
+    W_local[i]["ij"] = W[i]["ij"];
   }
 
   ofstream Plot_File("results/test.csv");
@@ -68,10 +76,17 @@ void TEST_CPD(World &dw) {
   decom_dt.Init(V, W_dt);
   decom_dt.als(1e-5, 1000, 10, 100, Plot_File);
 
+  decom_local.Init(V, W_local);
+  decom_local.als(1e-5, 1000, 10, 100, Plot_File);
+
   for (int i = 0; i < V->order; i++) {
     Matrix<> diff = Matrix<>(13, 5, dw);
     diff["ij"] = W[i]["ij"] - W_dt[i]["ij"];
     double diff_norm = diff.norm2();
+    assert(diff_norm < 1e-8);
+
+    diff["ij"] = W[i]["ij"] - W_local[i]["ij"];
+    diff_norm = diff.norm2();
     assert(diff_norm < 1e-8);
   }
 }
@@ -85,6 +100,7 @@ int main(int argc, char **argv) {
   World dw(argc, argv);
 
   // TEST_decomposition(dw);
+  TEST_local_mttkrp(dw);
   TEST_CPD(dw);
 
   cout << "All tests passed" << endl;
