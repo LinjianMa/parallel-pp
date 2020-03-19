@@ -294,7 +294,8 @@ int main(int argc, char **argv) {
         int lens[dim];
         for (int i = 0; i < dim; i++)
           lens[i] = s;
-        Matrix<> **W = (Matrix<> **)malloc(dim * sizeof(Matrix<> *)); // N matrices V will be decomposed into
+        Matrix<> **W = (Matrix<> **)malloc(
+            dim * sizeof(Matrix<> *)); // N matrices V will be decomposed into
         for (int i = 0; i < dim; i++) {
           // use subworld matrix to make the matrix deterministic across various
           // processes
@@ -356,7 +357,8 @@ int main(int argc, char **argv) {
       cout << "Vnorm= " << Vnorm << endl;
     ofstream Plot_File(filename);
 
-    Matrix<> **W = (Matrix<> **)malloc(V.order * sizeof(Matrix<> *)); // N matrices V will be decomposed into
+    Matrix<> **W = (Matrix<> **)malloc(
+        V.order * sizeof(Matrix<> *)); // N matrices V will be decomposed into
     Matrix<> *grad_W = new Matrix<>[V.order]; // gradients in N dimensions
     for (int i = 0; i < V.order; i++) {
       Matrix<> *W_subworld = NULL;

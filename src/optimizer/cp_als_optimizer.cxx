@@ -32,7 +32,8 @@ template <typename dtype> void CPOptimizer<dtype>::update_S(int update_index) {
   // contractions
   S["ij"] = W[index[0]]->operator[]("ki") * W[index[0]]->operator[]("kj");
   for (int ii = 1; ii < order - 1; ii++) {
-    S["ij"] = S["ij"] * (W[index[ii]]->operator[]("ki") * W[index[ii]]->operator[]("kj"));
+    S["ij"] = S["ij"] *
+              (W[index[ii]]->operator[]("ki") * W[index[ii]]->operator[]("kj"));
   }
   S["ij"] += regul["ij"];
 }

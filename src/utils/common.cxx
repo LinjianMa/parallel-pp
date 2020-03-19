@@ -1033,7 +1033,8 @@ void gradient_CP(Tensor<> &V, Matrix<> **W, Matrix<> *grad_W, World &dw) {
     // calculating S
     S["ij"] = W[index[0]]->operator[]("ki") * W[index[0]]->operator[]("kj");
     for (int ii = 1; ii < V.order - 1; ii++) {
-      S["ij"] = S["ij"] * (W[index[ii]]->operator[]("ki") * W[index[ii]]->operator[]("kj"));
+      S["ij"] = S["ij"] * (W[index[ii]]->operator[]("ki") *
+                           W[index[ii]]->operator[]("kj"));
     }
     // subproblem grad_W[i]
     gradsubprob(M, S, *W[i], grad_W[i]);

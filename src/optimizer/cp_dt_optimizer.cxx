@@ -101,8 +101,9 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index) {
   mttkrp_map[index] = Tensor<dtype>(strlen(index_char), lens, *dw);
 
   // TODO: this needs to be implemented with a local version.
-  mttkrp_map[index][index_char] = mttkrp_map[parent_index][parent_index] *
-                                  this->W[indexes[W_index]]->operator[](mat_index);
+  mttkrp_map[index][index_char] =
+      mttkrp_map[parent_index][parent_index] *
+      this->W[indexes[W_index]]->operator[](mat_index);
 }
 
 template <typename dtype> double CPDTOptimizer<dtype>::step() {

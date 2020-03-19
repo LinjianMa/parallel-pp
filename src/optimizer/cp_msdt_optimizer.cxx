@@ -166,8 +166,9 @@ void CPMSDTOptimizer<dtype>::mttkrp_map_DT(string index) {
   }
   mttkrp_map[index] = Tensor<dtype>(strlen(index_char), lens, *dw);
 
-  mttkrp_map[index][index_char] = mttkrp_map[parent_index][parent_index] *
-                                  this->W[indexes[W_index]]->operator[](mat_index);
+  mttkrp_map[index][index_char] =
+      mttkrp_map[parent_index][parent_index] *
+      this->W[indexes[W_index]]->operator[](mat_index);
 }
 
 template <typename dtype> double CPMSDTOptimizer<dtype>::step() {

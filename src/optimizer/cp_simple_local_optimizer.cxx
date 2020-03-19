@@ -62,7 +62,8 @@ template <typename dtype> double CPLocalOptimizer<dtype>::step() {
     // calculating S
     CPOptimizer<dtype>::update_S(i);
     // // calculate gradient
-    // this->grad_W[i]["ij"] = -M["ij"] + this->W[i]->operator[]("ik") * this->S["kj"];
+    // this->grad_W[i]["ij"] = -M["ij"] + this->W[i]->operator[]("ik") *
+    // this->S["kj"];
 
     cout << "in the optimizer" << i << endl;
 
