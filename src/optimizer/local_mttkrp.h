@@ -30,6 +30,7 @@ public:
 
   World *world;
 
+  // arrs[mode] is the local data for W.
   dtype **arrs = NULL;
 
   // physical index of each dimension

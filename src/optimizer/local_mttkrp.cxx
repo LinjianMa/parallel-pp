@@ -28,38 +28,48 @@ template <typename dtype> void LocalMTTKRP<dtype>::distribute_mats(int mode) {
   t_mttkrp_remap.start();
 
   for (int i = 0; i < order; i++) {
-    cout << "i is: " << i << endl;
+
     Tensor<dtype> *mat = &(this->W[i]);
+    if (this->redist_mats[i] != NULL) {
+      // delete (this->redist_mats[i]);
+      this->redist_mats[i] = NULL;
+    }
+    // free(this->arrs[i]);
 
     if (this->phys_phase[i] == 1) {
-      cout << "phys phase is 1: " << endl;
-      this->redist_mats[i] = NULL;
-      if (this->world->np == 1) {
-        this->arrs[i] = (dtype *)this->W[i].data;
-        /*
-        if (i == mode)
-          std::fill(arrs[i], arrs[i] + mat_list[i].size,
-                    *((dtype *)V->sr->addid()));
-        */
-      } else if (i != mode) {
-        this->arrs[i] = (dtype *)V->sr->alloc(V->lens[i] * this->rank);
-        mat->read_all(arrs[i], true);
+      // one process in dim i
+      if (i == mode) {
+        if (this->world->np == 1) {
+          // overall only 1 process
+          this->arrs[i] = (dtype *)this->W[i].data;
+          /*
+            std::fill(arrs[i], arrs[i] + this->W[i].size,
+                      *((dtype *)V->sr->addid()));
+          */
+        } else {
+          // overall >1 processes
+          char nonastr[2];
+          nonastr[0] = 'a' - 1;
+          nonastr[1] = 'a' - 2;
+          this->redist_mats[i] = new Matrix<dtype>(
+              this->W[i].nrow, this->rank, nonastr, par[par_idx],
+              Idx_Partition(), 0, *this->world, *V->sr);
+          // TODO: this is for debug
+          this->redist_mats[i]->operator[]("ij") = this->W[i]["ij"];
+          arrs[i] = (dtype *)this->redist_mats[i]->data;
+        }
       } else {
-        char nonastr[2];
-        nonastr[0] = 'a' - 1;
-        nonastr[1] = 'a' - 2;
-        this->redist_mats[i] = new Matrix<dtype>(
-            this->W[i].nrow, this->rank, nonastr, par[par_idx], Idx_Partition(),
-            0, *this->world, *V->sr);
-        // TODO: this is for debug
-        this->redist_mats[i]->operator[]("ij") = this->W[i]["ij"];
-        arrs[i] = (dtype *)this->redist_mats[i]->data;
+        if (this->world->np == 1) {
+          // overall only 1 process
+          this->arrs[i] = (dtype *)this->W[i].data;
+        } else {
+          // overall >1 processes
+          this->arrs[i] = (dtype *)V->sr->alloc(V->lens[i] * this->rank);
+          mat->read_all(arrs[i], true);
+        }
       }
-
     } else {
-
-      cout << "phys phase is  not 1: " << endl;
-
+      // multiple processes in dim i
       int topo_dim = V->edge_map[i].cdt;
       IASSERT(V->edge_map[i].type == CTF_int::PHYSICAL_MAP);
       IASSERT(!V->edge_map[i].has_child ||
@@ -82,14 +92,8 @@ template <typename dtype> void LocalMTTKRP<dtype>::distribute_mats(int mode) {
                             Idx_Partition(), 0, *V->wrld, *V->sr);
       // if (i != mode)
       m->operator[]("ij") = mat->operator[]("ij");
-      cout << "print m here:  " << i << endl;
-      m->print();
-      cout << "print mat_list here:  " << i << endl;
-      this->W[i].print();
 
       this->redist_mats[i] = m;
-      cout << "print redist_mats here:  " << i << endl;
-      this->redist_mats[i]->print();
 
       // TODO:change here
       // redist_mats[i]->operator[]("ij") = mat->operator[]("ij");
@@ -99,6 +103,7 @@ template <typename dtype> void LocalMTTKRP<dtype>::distribute_mats(int mode) {
       cmdt.bcast(m->data, m->size, V->sr->mdtype(), 0);
     }
   }
+
   t_mttkrp_remap.stop();
 }
 
@@ -135,10 +140,6 @@ void LocalMTTKRP<dtype>::post_mttkrp_reduce(int mode) {
       //   MPI_Comm_free(&cm);
       // }
       if (this->redist_mats[j] != NULL) {
-        // TODO: this is for debug
-        // cout << "print redist mat here:  " << endl;
-        // redist_mats[j]->print();
-        // mat_list[j].print();
         this->W[j].set_zero();
         this->W[j].operator[]("ij") += this->redist_mats[j]->operator[]("ij");
         delete redist_mats[j];
