@@ -26,10 +26,14 @@ void TEST_local_mttkrp(World &dw) {
     W_local[i]["ij"] = W[i]["ij"];
   }
 
+  LocalMTTKRP<double> *local_mttkrp = new LocalMTTKRP<double>(3, 5, dw);
+  local_mttkrp->setup(V, W_local);
+
   for (int i = 0; i < V->order; i++) {
     Matrix<> diff = Matrix<>(8, 5, dw);
 
-    MTTKRP(V, W_local, i);
+    local_mttkrp->distribute_mats(i);
+    local_mttkrp->post_mttkrp_reduce(i);
 
     W[i].print();
     W_local[i].print();

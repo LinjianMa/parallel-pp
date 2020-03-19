@@ -1,7 +1,6 @@
 
 // #include "decomposition.h"
 #include "../utils/common.h"
-#include "multilinear.cxx"
 #include <ctf.hpp>
 
 using namespace CTF;
@@ -15,10 +14,22 @@ CPLocalOptimizer<dtype>::CPLocalOptimizer(int order, int r, World &dw)
   for (int j = 0; j < order; j++) {
     seq_V[j] = 'a' + j;
   }
+
+  local_mttkrp = new LocalMTTKRP<dtype>(order, r, dw);
 }
 
 template <typename dtype> CPLocalOptimizer<dtype>::~CPLocalOptimizer() {
   // delete S;
+  delete local_mttkrp;
+}
+
+template <typename dtype>
+void CPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
+                                        Matrix<dtype> *mat, Matrix<dtype> *grad,
+                                        double lambda) {
+
+  CPOptimizer<dtype>::configure(input, mat, grad, lambda);
+  local_mttkrp->setup(input, mat);
 }
 
 template <typename dtype> double CPLocalOptimizer<dtype>::step() {
@@ -41,7 +52,8 @@ template <typename dtype> double CPLocalOptimizer<dtype>::step() {
     index[order - 1] = (int)(seq_V[order - 1] - 'a');
     lens_H[order - 1] = this->W[i].ncol;
 
-    MTTKRP(this->V, this->W, i);
+    local_mttkrp->distribute_mats(i);
+    local_mttkrp->post_mttkrp_reduce(i);
 
     // initialize matrix M
     Matrix<dtype> M = Matrix<dtype>(this->W[i].nrow, this->W[i].ncol);

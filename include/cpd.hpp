@@ -8,5 +8,6 @@
 #include "../src/optimizer/cp_msdt_optimizer.h"
 #include "../src/optimizer/cp_simple_optimizer.h"
 #include "../src/optimizer/cp_simple_local_optimizer.h"
+#include "../src/optimizer/local_mttkrp.h"
 
 #endif
