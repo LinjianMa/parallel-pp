@@ -52,11 +52,11 @@ template <typename dtype> Decomposition<dtype>::~Decomposition() {
 // }
 
 template <typename dtype>
-void Decomposition<dtype>::Init(Tensor<dtype> *input, Matrix<dtype> *W) {
+void Decomposition<dtype>::Init(Tensor<dtype> *input, Matrix<dtype> **W) {
   assert(input->order == order);
   for (int i = 0; i < order; i++) {
     assert(input->lens[i] == size[i]);
-    assert(W[i].ncol == rank[i]);
+    assert(W[i]->ncol == rank[i]);
   }
   if (V != NULL) {
     delete V;
@@ -75,5 +75,5 @@ template <typename dtype> void Decomposition<dtype>::print_V() const {
 
 template <typename dtype> void Decomposition<dtype>::print_W(int i) const {
   assert(W != NULL);
-  W[i].print();
+  W[i]->print();
 }

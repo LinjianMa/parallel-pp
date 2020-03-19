@@ -30,21 +30,21 @@ template <typename dtype> void CPOptimizer<dtype>::update_S(int update_index) {
     j++;
   }
   // contractions
-  S["ij"] = W[index[0]]["ki"] * W[index[0]]["kj"];
+  S["ij"] = W[index[0]]->operator[]("ki") * W[index[0]]->operator[]("kj");
   for (int ii = 1; ii < order - 1; ii++) {
-    S["ij"] = S["ij"] * (W[index[ii]]["ki"] * W[index[ii]]["kj"]);
+    S["ij"] = S["ij"] * (W[index[ii]]->operator[]("ki") * W[index[ii]]->operator[]("kj"));
   }
   S["ij"] += regul["ij"];
 }
 
 template <typename dtype>
-void CPOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> *mat,
+void CPOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> **mat,
                                    Matrix<dtype> *grad, double lambda) {
 
   assert(input->order == order);
 
   for (int i = 0; i < order; i++) {
-    assert(mat[i].ncol == rank);
+    assert(mat[i]->ncol == rank);
   }
 
   if (V != NULL) {
@@ -60,6 +60,6 @@ void CPOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> *mat,
   this->W = mat;
   this->grad_W = grad;
 
-  regul = Matrix<dtype>(mat[0].ncol, mat[0].ncol);
+  regul = Matrix<dtype>(mat[0]->ncol, mat[0]->ncol);
   regul["ii"] = 1. * lambda;
 }

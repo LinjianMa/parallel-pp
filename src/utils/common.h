@@ -6,7 +6,7 @@ using namespace CTF;
 
 void vec2str(vector<int> vec, string &seq_out);
 
-void build_V(Tensor<> &V, Matrix<> *W, int order, World &dw);
+void build_V(Tensor<> &V, Matrix<> **W, int order, World &dw);
 
 void mttkrp_map_DT(map<string, Tensor<>> &mttkrp_map,
                    map<string, string> &parent, map<string, string> &sibling,
@@ -82,7 +82,7 @@ void fold_unfold(Tensor<> &X, Tensor<> &Y);
  *  index: sequence for W[i] to be used
  *  lens_H: lens of each dimension in H_T
  */
-void KhatriRaoProduct(Tensor<> &H_T, Matrix<> *W, int *index, int *lens_H,
+void KhatriRaoProduct(Tensor<> &H_T, Matrix<> **W, int *index, int *lens_H,
                       World &dw);
 
 /**
@@ -94,7 +94,7 @@ void KhatriRaoProduct(Tensor<> &H_T, Matrix<> *W, int *index, int *lens_H,
  *  lens_H: lens of each dimension in H_T
  *  M["dk"] = V["abcd"]*W1["ak"]*W2["bk"]*W3["ck"]
  */
-void KhatriRao_contract(Matrix<> &M, Tensor<> &V, Matrix<> *W, int *index,
+void KhatriRao_contract(Matrix<> &M, Tensor<> &V, Matrix<> **W, int *index,
                         int *lens_H, World &dw);
 
 /**

@@ -126,7 +126,7 @@ void mttkrp_map_DT(map<string, Tensor<>> &mttkrp_map,
   return;
 }
 
-void build_V(Tensor<> &V, Matrix<> *W, int order, World &dw) {
+void build_V(Tensor<> &V, Matrix<> **W, int order, World &dw) {
   Timer tbuild_V("build_V");
   tbuild_V.start();
   char chars[] = {'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
@@ -134,16 +134,16 @@ void build_V(Tensor<> &V, Matrix<> *W, int order, World &dw) {
   // int lens_V[2];
   // lens_V[0] = W[0].nrow;
   // lens_V[1] = W[0].ncol;
-  V = W[0];
+  V = *W[0];
   char seq_W[3] = {'i', '*', '\0'};
   // char seq = {'i','*','\0'};
   for (int i = 1; i < order - 1; i++) {
     // build V_temp
     int lens_V[i + 2];
     for (int j = 0; j < i + 1; j++) {
-      lens_V[j] = W[j].nrow;
+      lens_V[j] = W[j]->nrow;
     }
-    lens_V[i + 1] = W[0].ncol;
+    lens_V[i + 1] = W[0]->ncol;
     Tensor<> V_temp = Tensor<>(i + 2, lens_V, dw);
     // seq_temp
     char seq_temp[i + 3];
@@ -161,7 +161,7 @@ void build_V(Tensor<> &V, Matrix<> *W, int order, World &dw) {
     }
     // seq_W
     seq_W[0] = chars[i];
-    V_temp[seq_temp] = V[seq] * W[i][seq_W];
+    V_temp[seq_temp] = V[seq] * W[i]->operator[](seq_W);
     V = V_temp;
     // char seq[i+3];
     // for (int j=0; j<i+3; j++) {
@@ -171,7 +171,7 @@ void build_V(Tensor<> &V, Matrix<> *W, int order, World &dw) {
   // build V_temp
   int lens_V[order];
   for (int j = 0; j < order; j++) {
-    lens_V[j] = W[j].nrow;
+    lens_V[j] = W[j]->nrow;
   }
   Tensor<> V_temp = Tensor<>(order, lens_V, dw);
   char seq_temp[order + 1];
@@ -185,7 +185,7 @@ void build_V(Tensor<> &V, Matrix<> *W, int order, World &dw) {
   seq[order - 1] = '*';
   seq_W[0] = chars[order - 1];
 
-  V_temp[seq_temp] = V[seq] * W[order - 1][seq_W];
+  V_temp[seq_temp] = V[seq] * W[order - 1]->operator[](seq_W);
   V = V_temp;
   tbuild_V.stop();
 }
@@ -880,11 +880,11 @@ void fold_unfold(Tensor<> &X, Tensor<> &Y) {
  *  index: sequence for W[i] to be used
  *  lens_H: lens of each dimension in H_T
  */
-void KhatriRaoProduct(Tensor<> &H_T, Matrix<> *W, int *index, int *lens_H,
+void KhatriRaoProduct(Tensor<> &H_T, Matrix<> **W, int *index, int *lens_H,
                       World &dw) {
 
   int K = H_T.lens[H_T.order - 1];
-  Tensor<> H_front = W[index[0]];
+  Tensor<> H_front = *(W[index[0]]);
   Tensor<> H_temp;
   for (int j = 1; j < H_T.order - 1; j++) { // iterate on [ab]
     // make the char
@@ -906,7 +906,7 @@ void KhatriRaoProduct(Tensor<> &H_T, Matrix<> *W, int *index, int *lens_H,
     lens_W[j + 1] = K;
     H_temp = Tensor<>(j + 2, lens_W, dw);
     // contraction
-    H_temp[seq_f] = H_front[seq] * W[index[j]]["jk"];
+    H_temp[seq_f] = H_front[seq] * W[index[j]]->operator[]("jk");
     H_front = H_temp;
   }
   H_T = H_front;
@@ -922,10 +922,10 @@ void KhatriRaoProduct(Tensor<> &H_T, Matrix<> *W, int *index, int *lens_H,
  *  lens_H: lens of each dimension in H_T
  *  M["dk"] = V["abcd"]*W1["ak"]*W2["bk"]*W3["ck"]
  */
-void KhatriRao_contract(Matrix<> &M, Tensor<> &V, Matrix<> *W, int *index,
+void KhatriRao_contract(Matrix<> &M, Tensor<> &V, Matrix<> **W, int *index,
                         int *lens_H, World &dw) {
 
-  int K = W[0].ncol;
+  int K = W[0]->ncol;
   Tensor<> V_front = V;
   Tensor<> V_temp;
   /* initial condition
@@ -954,7 +954,7 @@ void KhatriRao_contract(Matrix<> &M, Tensor<> &V, Matrix<> *W, int *index,
   lens_V[V.order - 1] = K;
   V_temp = Tensor<>(V.order, lens_V, dw);
   // contraction
-  V_temp[seq_f] = V_front[seq] * W[index[0]][seq_w];
+  V_temp[seq_f] = V_front[seq] * W[index[0]]->operator[](seq_w);
   V_front = V_temp;
   /* loops
    */
@@ -983,7 +983,7 @@ void KhatriRao_contract(Matrix<> &M, Tensor<> &V, Matrix<> *W, int *index,
     lens_V[V.order - j - 1] = K;
     V_temp = Tensor<>(V.order - j, lens_V, dw);
     // contraction
-    V_temp[seq_f] = V_front[seq] * W[index[j]][seq_w];
+    V_temp[seq_f] = V_front[seq] * W[index[j]]->operator[](seq_w);
     V_front = V_temp;
   }
   M["ij"] = V_front["ij"];
@@ -1000,7 +1000,7 @@ void gradsubprob(Matrix<> &M, Matrix<> &S, Matrix<> &W, Matrix<> &grad_W) {
 /**
  * \brief initialize grad_W
  */
-void gradient_CP(Tensor<> &V, Matrix<> *W, Matrix<> *grad_W, World &dw) {
+void gradient_CP(Tensor<> &V, Matrix<> **W, Matrix<> *grad_W, World &dw) {
   Timer tgradient_CP("gradient_CP");
   tgradient_CP.start();
   // make the char
@@ -1010,7 +1010,7 @@ void gradient_CP(Tensor<> &V, Matrix<> *W, Matrix<> *grad_W, World &dw) {
     seq_V[j] = 'a' + j;
   }
   // initialize matrix S
-  Matrix<> S = Matrix<>(W[0].ncol, W[0].ncol);
+  Matrix<> S = Matrix<>(W[0]->ncol, W[0]->ncol);
   // iteration on grad_W[i]
   for (int i = 0; i < V.order; i++) {
     // make the char
@@ -1025,18 +1025,18 @@ void gradient_CP(Tensor<> &V, Matrix<> *W, Matrix<> *grad_W, World &dw) {
       lens_H[j] = V.lens[index[j]];
     }
     index[V.order - 1] = (int)(seq_V[V.order - 1] - 'a');
-    lens_H[V.order - 1] = W[i].ncol;
+    lens_H[V.order - 1] = W[i]->ncol;
     // initialize matrix M
-    Matrix<> M = Matrix<>(W[i].nrow, W[i].ncol);
+    Matrix<> M = Matrix<>(W[i]->nrow, W[i]->ncol);
     // Khatri-Rao Product C[I,J,K]= A[I,K](op)B[J,K]
     KhatriRao_contract(M, V, W, index, lens_H, dw);
     // calculating S
-    S["ij"] = W[index[0]]["ki"] * W[index[0]]["kj"];
+    S["ij"] = W[index[0]]->operator[]("ki") * W[index[0]]->operator[]("kj");
     for (int ii = 1; ii < V.order - 1; ii++) {
-      S["ij"] = S["ij"] * (W[index[ii]]["ki"] * W[index[ii]]["kj"]);
+      S["ij"] = S["ij"] * (W[index[ii]]->operator[]("ki") * W[index[ii]]->operator[]("kj"));
     }
     // subproblem grad_W[i]
-    gradsubprob(M, S, W[i], grad_W[i]);
+    gradsubprob(M, S, *W[i], grad_W[i]);
     // recover the char
     temp = seq_V[V.order - 1];
     seq_V[V.order - 1] = seq_V[i];

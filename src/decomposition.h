@@ -18,7 +18,7 @@ public:
 
   // Decomposition<dtype> & operator=(Decomposition<dtype> const & other);
 
-  void Init(Tensor<dtype> *input, Matrix<dtype> *mat);
+  void Init(Tensor<dtype> *input, Matrix<dtype> **mat);
 
   void print_V() const;
 
@@ -30,7 +30,7 @@ public:
   int *size;
   int *rank;
   // W: output solutions
-  Matrix<dtype> *W = NULL;
+  Matrix<dtype> **W = NULL;
   // DimensionTree<dtype>* dtree_;
   World *world;
 };

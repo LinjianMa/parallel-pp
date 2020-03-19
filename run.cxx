@@ -294,7 +294,7 @@ int main(int argc, char **argv) {
         int lens[dim];
         for (int i = 0; i < dim; i++)
           lens[i] = s;
-        Matrix<> *W = new Matrix<>[dim]; // N matrices V will be decomposed into
+        Matrix<> **W = (Matrix<> **)malloc(dim * sizeof(Matrix<> *)); // N matrices V will be decomposed into
         for (int i = 0; i < dim; i++) {
           // use subworld matrix to make the matrix deterministic across various
           // processes
@@ -303,8 +303,8 @@ int main(int argc, char **argv) {
             W_subworld = new Matrix<>(s, R, sworld);
             W_subworld->fill_random(0., 1.);
           }
-          W[i] = Matrix<>(s, R, dw);
-          W[i].add_from_subworld(W_subworld);
+          W[i] = new Matrix<>(s, R, dw);
+          W[i]->add_from_subworld(W_subworld);
           delete W_subworld;
         }
         build_V(V, W, dim, dw);
@@ -355,7 +355,8 @@ int main(int argc, char **argv) {
     if (dw.rank == 0)
       cout << "Vnorm= " << Vnorm << endl;
     ofstream Plot_File(filename);
-    Matrix<> *W = new Matrix<>[V.order]; // N matrices V will be decomposed into
+
+    Matrix<> **W = (Matrix<> **)malloc(V.order * sizeof(Matrix<> *)); // N matrices V will be decomposed into
     Matrix<> *grad_W = new Matrix<>[V.order]; // gradients in N dimensions
     for (int i = 0; i < V.order; i++) {
       Matrix<> *W_subworld = NULL;
@@ -363,9 +364,9 @@ int main(int argc, char **argv) {
         W_subworld = new Matrix<>(V.lens[i], R, sworld);
         W_subworld->fill_random(0., 1.);
       }
-      W[i] = Matrix<>(V.lens[i], R, dw);
+      W[i] = new Matrix<>(V.lens[i], R, dw);
       grad_W[i] = Matrix<>(V.lens[i], R, dw);
-      W[i].add_from_subworld(W_subworld);
+      W[i]->add_from_subworld(W_subworld);
       delete W_subworld;
     }
 

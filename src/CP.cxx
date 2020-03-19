@@ -37,7 +37,7 @@ CPD<dtype, Optimizer>::CPD(int order, int *size_, int *r, World &dw)
 }
 
 template <typename dtype, class Optimizer>
-void CPD<dtype, Optimizer>::Init(Tensor<dtype> *input, Matrix<dtype> *mat,
+void CPD<dtype, Optimizer>::Init(Tensor<dtype> *input, Matrix<dtype> **mat,
                                  double lambda) {
 
   Decomposition<dtype>::Init(input, mat);

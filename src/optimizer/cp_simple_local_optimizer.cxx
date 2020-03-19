@@ -47,27 +47,27 @@ template <typename dtype> double CPLocalOptimizer<dtype>::step() {
     int index[order];
     for (int j = 0; j < order - 1; j++) {
       index[j] = (int)(seq_V[j] - 'a');
-      lens_H[j] = this->W[index[j]].nrow;
+      lens_H[j] = this->W[index[j]]->nrow;
     }
     index[order - 1] = (int)(seq_V[order - 1] - 'a');
-    lens_H[order - 1] = this->W[i].ncol;
+    lens_H[order - 1] = this->W[i]->ncol;
 
-    local_mttkrp->distribute_mats(i);
+    local_mttkrp->distribute_W();
     local_mttkrp->post_mttkrp_reduce(i);
 
     // initialize matrix M
-    Matrix<dtype> M = Matrix<dtype>(this->W[i].nrow, this->W[i].ncol);
+    Matrix<dtype> M = Matrix<dtype>(this->W[i]->nrow, this->W[i]->ncol);
     // // Khatri-Rao Product C[I,J,K]= A[I,K](op)B[J,K]
-    // KhatriRao_contract(M, *(this->V), this->W, index, lens_H, *dw);
+    // KhatriRao_contract(M, *(this->V), *(this->W), index, lens_H, *dw);
     // calculating S
     CPOptimizer<dtype>::update_S(i);
     // // calculate gradient
-    // this->grad_W[i]["ij"] = -M["ij"] + this->W[i]["ik"] * this->S["kj"];
+    // this->grad_W[i]["ij"] = -M["ij"] + this->W[i]->operator[]("ik") * this->S["kj"];
 
     cout << "in the optimizer" << i << endl;
 
     // subproblem M=W*S
-    cholesky_solve(M, this->W[i], this->S);
+    cholesky_solve(M, *(this->W[i]), this->S);
 
     cout << "finish cholesky_solve " << i << endl;
 

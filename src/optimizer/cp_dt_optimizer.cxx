@@ -68,14 +68,14 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index) {
   int lens[strlen(seq_map_init)];
   for (int ii = 0; ii < strlen(seq_map_init); ii++) {
     if (seq_map_init[ii] == '*')
-      lens[ii] = this->W[0].ncol;
+      lens[ii] = this->W[0]->ncol;
     else
       lens[ii] = this->V->lens[int(seq_map_init[ii] - 'a')];
   }
   mttkrp_map[seq_tree_top] = Tensor<dtype>(strlen(seq_map_init), lens, *dw);
 
   mttkrp_map[seq_tree_top][seq_map_init] =
-      (*this->V)[seq_V] * this->W[left_index][seq_matrix];
+      (*this->V)[seq_V] * this->W[left_index]->operator[](seq_matrix);
 }
 
 template <typename dtype>
@@ -94,7 +94,7 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index) {
 
   for (int ii = 0; ii < strlen(index_char); ii++) {
     if (index[ii] == '*')
-      lens[ii] = this->W[0].ncol;
+      lens[ii] = this->W[0]->ncol;
     else
       lens[ii] = this->V->lens[int(indexes[index[ii] - 'a'])];
   }
@@ -102,7 +102,7 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index) {
 
   // TODO: this needs to be implemented with a local version.
   mttkrp_map[index][index_char] = mttkrp_map[parent_index][parent_index] *
-                                  this->W[indexes[W_index]][mat_index];
+                                  this->W[indexes[W_index]]->operator[](mat_index);
 }
 
 template <typename dtype> double CPDTOptimizer<dtype>::step() {
@@ -145,9 +145,9 @@ template <typename dtype> double CPDTOptimizer<dtype>::step() {
     CPOptimizer<dtype>::update_S(indexes[i]);
     // calculate gradient
     this->grad_W[indexes[i]]["ij"] =
-        -M["ij"] + this->W[indexes[i]]["ik"] * this->S["kj"];
+        -M["ij"] + this->W[indexes[i]]->operator[]("ik") * this->S["kj"];
 
-    cholesky_solve(M, this->W[indexes[i]], this->S);
+    cholesky_solve(M, *this->W[indexes[i]], this->S);
   }
 
   first_subtree = !first_subtree;

@@ -12,7 +12,7 @@ public:
 
   ~CPOptimizer();
 
-  void configure(Tensor<dtype> *input, Matrix<dtype> *mat, Matrix<dtype> *grad,
+  void configure(Tensor<dtype> *input, Matrix<dtype> **mat, Matrix<dtype> *grad,
                  double lambda);
 
   void update_S(int update_index);
@@ -22,7 +22,7 @@ public:
   // V: input tensor
   Tensor<dtype> *V = NULL;
   // W: output solutions
-  Matrix<dtype> *W = NULL;
+  Matrix<dtype> **W = NULL;
   // grad_W: gradient matrices
   Matrix<dtype> *grad_W = NULL;
 
