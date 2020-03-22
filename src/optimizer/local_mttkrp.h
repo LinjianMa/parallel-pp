@@ -12,7 +12,7 @@ public:
 
   ~LocalMTTKRP();
 
-  void distribute_W();
+  void distribute_W(int i);
 
   void setup_V_local_data();
 

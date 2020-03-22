@@ -30,7 +30,9 @@ void CPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
 
   CPOptimizer<dtype>::configure(input, mat, grad, lambda);
   local_mttkrp->setup(input, mat);
-  local_mttkrp->distribute_W();
+  for (int i = 0; i < this->order; i++) {
+    local_mttkrp->distribute_W(i);
+  }
   local_mttkrp->construct_mttkrp_locals();
   local_mttkrp->setup_V_local_data();
 }
@@ -43,26 +45,19 @@ template <typename dtype> double CPLocalOptimizer<dtype>::step() {
   for (int i = 0; i < order; i++) {
 
     local_mttkrp->mttkrp_calc(i);
-
-    local_mttkrp->mttkrp[i]->print();
-
     local_mttkrp->post_mttkrp_reduce(i);
-
-    local_mttkrp->mttkrp[i]->print();
-    break;
-
     CPOptimizer<dtype>::update_S(i);
-    // // calculate gradient
-    // this->grad_W[i]["ij"] = -M["ij"] + this->W[i]->operator[]("ik") *
-    // this->S["kj"];
-
-    cout << "in the optimizer" << i << endl;
+    // calculate gradient
+    this->grad_W[i]["ij"] = -local_mttkrp->mttkrp[i]->operator[]("ij") +
+                            this->W[i]->operator[]("ik") * this->S["kj"];
 
     // subproblem M=W*S
-    cholesky_solve(*(local_mttkrp->mttkrp[i]), *(this->W[i]), this->S);
+    Matrix<> M_reshape =
+        Matrix<>(this->W[i]->nrow, this->W[i]->ncol, *(this->world));
+    M_reshape["ij"] = local_mttkrp->mttkrp[i]->operator[]("ij");
+    cholesky_solve(M_reshape, *(this->W[i]), this->S);
 
-    cout << "finish cholesky_solve " << i << endl;
-
+    local_mttkrp->distribute_W(i);
   }
   return 1.;
 }

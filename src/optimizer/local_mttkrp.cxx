@@ -46,14 +46,8 @@ template <typename dtype> void LocalMTTKRP<dtype>::mttkrp_calc(int mode) {
 
   int index[this->order];
   int lens_H[this->order];
-  cout << "before construction of lensh" << endl;
   for (int j = 0; j <= this->order - 1; j++) {
     index[j] = (int)(seq_V[j] - 'a');
-    if (this->world->rank == 0) {
-      cout << "index is :  " << (int)(seq_V[j] - 'a') << endl;
-      cout << "nrow is :  " << this->W_local[index[j]]->nrow << " "
-           << this->V_local->lens[index[j]] << endl;
-    }
     lens_H[j] = this->W_local[index[j]]->nrow;
     IASSERT(this->W_local[index[j]]->nrow == this->V_local->lens[index[j]]);
   }
@@ -62,72 +56,69 @@ template <typename dtype> void LocalMTTKRP<dtype>::mttkrp_calc(int mode) {
                      this->W_local, index, lens_H, *this->sworld);
 }
 
-template <typename dtype> void LocalMTTKRP<dtype>::distribute_W() {
+template <typename dtype> void LocalMTTKRP<dtype>::distribute_W(int i) {
 
   Timer t_mttkrp_remap("MTTKRP_distribute_W");
   t_mttkrp_remap.start();
 
-  for (int i = 0; i < order; i++) {
+  Tensor<dtype> *mat = this->W[i];
 
-    Tensor<dtype> *mat = this->W[i];
-
-    if (this->phys_phase[i] == 1) {
-      // one process in dim i
-      if (this->world->np == 1) {
-        // overall only 1 process
-        this->arrs[i] = (dtype *)this->W[i]->data;
-      } else {
-        // overall >1 processes
-        char nonastr[2];
-        nonastr[0] = 'a' - 1;
-        nonastr[1] = 'a' - 2;
-        Matrix<dtype> *m = new Matrix<dtype>(
-            this->W[i]->nrow, this->rank, nonastr, par[par_idx],
-            Idx_Partition(), 0, *this->world, *V->sr);
-        m->operator[]("ij") = mat->operator[]("ij");
-        delete this->W[i];
-        this->W[i] = m;
-
-        arrs[i] = (dtype *)this->V->sr->alloc(this->V->lens[i] * this->rank);
-        this->W[i]->read_all(arrs[i], true);
-      }
+  if (this->phys_phase[i] == 1) {
+    // one process in dim i
+    if (this->world->np == 1) {
+      // overall only 1 process
+      this->arrs[i] = (dtype *)this->W[i]->data;
     } else {
-      // multiple processes in dim i
-      int topo_dim = V->edge_map[i].cdt;
-      IASSERT(V->edge_map[i].type == CTF_int::PHYSICAL_MAP);
-      IASSERT(!V->edge_map[i].has_child ||
-              V->edge_map[i].child->type != CTF_int::PHYSICAL_MAP);
-
-      char mat_idx[2];
-      mat_idx[0] = par_idx[topo_dim];
-      mat_idx[1] = 'a';
-
-      int comm_lda = 1;
-      for (int l = 0; l < topo_dim; l++) {
-        comm_lda *= V->topo->dim_comm[l].np;
-      }
-      CTF_int::CommData cmdt(V->wrld->rank -
-                                 comm_lda * V->topo->dim_comm[topo_dim].rank,
-                             V->topo->dim_comm[topo_dim].rank, V->wrld->cdt);
-
+      // overall >1 processes
+      char nonastr[2];
+      nonastr[0] = 'a' - 1;
+      nonastr[1] = 'a' - 2;
       Matrix<dtype> *m =
-          new Matrix<dtype>(this->W[i]->nrow, this->rank, mat_idx, par[par_idx],
-                            Idx_Partition(), 0, *V->wrld, *V->sr);
-
+          new Matrix<dtype>(this->W[i]->nrow, this->rank, nonastr, par[par_idx],
+                            Idx_Partition(), 0, *this->world, *V->sr);
       m->operator[]("ij") = mat->operator[]("ij");
-
       delete this->W[i];
       this->W[i] = m;
 
-      arrs[i] = (dtype *)m->data;
-      cmdt.bcast(m->data, m->size, V->sr->mdtype(), 0);
+      arrs[i] = (dtype *)this->V->sr->alloc(this->V->lens[i] * this->rank);
+      this->W[i]->read_all(arrs[i], true);
     }
-    // build the W_local
-    IASSERT(this->V->pad_edge_len[i] == this->W[i]->pad_edge_len[0]);
-    int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->phys_phase[i]);
-    this->W_local[i] = new Matrix<dtype>(pad_local_col, this->rank, *sworld);
-    this->W_local[i]->data = (char *)arrs[i];
+  } else {
+    // multiple processes in dim i
+    int topo_dim = V->edge_map[i].cdt;
+    IASSERT(V->edge_map[i].type == CTF_int::PHYSICAL_MAP);
+    IASSERT(!V->edge_map[i].has_child ||
+            V->edge_map[i].child->type != CTF_int::PHYSICAL_MAP);
+
+    char mat_idx[2];
+    mat_idx[0] = par_idx[topo_dim];
+    mat_idx[1] = 'a';
+
+    int comm_lda = 1;
+    for (int l = 0; l < topo_dim; l++) {
+      comm_lda *= V->topo->dim_comm[l].np;
+    }
+    CTF_int::CommData cmdt(V->wrld->rank -
+                               comm_lda * V->topo->dim_comm[topo_dim].rank,
+                           V->topo->dim_comm[topo_dim].rank, V->wrld->cdt);
+
+    Matrix<dtype> *m =
+        new Matrix<dtype>(this->W[i]->nrow, this->rank, mat_idx, par[par_idx],
+                          Idx_Partition(), 0, *V->wrld, *V->sr);
+
+    m->operator[]("ij") = mat->operator[]("ij");
+
+    delete this->W[i];
+    this->W[i] = m;
+
+    arrs[i] = (dtype *)m->data;
+    cmdt.bcast(m->data, m->size, V->sr->mdtype(), 0);
   }
+  // build the W_local
+  IASSERT(this->V->pad_edge_len[i] == this->W[i]->pad_edge_len[0]);
+  int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->phys_phase[i]);
+  this->W_local[i] = new Matrix<dtype>(pad_local_col, this->rank, *sworld);
+  this->W_local[i]->data = (char *)arrs[i];
 
   t_mttkrp_remap.stop();
 }

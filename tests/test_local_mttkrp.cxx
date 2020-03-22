@@ -5,7 +5,9 @@
 using namespace CTF;
 
 void TEST_local_mttkrp(World &dw) {
-  cout << "Test local mttkrp" << endl;
+  if (dw.rank == 0) {
+    cout << "Test local mttkrp" << endl;
+  }
 
   // test init
   int size = 8;
@@ -30,7 +32,9 @@ void TEST_local_mttkrp(World &dw) {
 
   LocalMTTKRP<double> *local_mttkrp = new LocalMTTKRP<double>(3, rank, dw);
   local_mttkrp->setup(V, W_local);
-  local_mttkrp->distribute_W();
+  for (int i = 0; i < 3; i++) {
+    local_mttkrp->distribute_W(i);
+  }
   local_mttkrp->setup_V_local_data();
   local_mttkrp->construct_mttkrp_locals();
 
@@ -41,9 +45,6 @@ void TEST_local_mttkrp(World &dw) {
 
     diff["ij"] = W[i]->operator[]("ij") - W_local[i]->operator[]("ij");
     double diff_norm = diff.norm2();
-    if (dw.rank == 0) {
-      cout << "diff norm is: " << diff_norm << endl;
-    }
     assert(diff_norm < 1e-8);
   }
 }

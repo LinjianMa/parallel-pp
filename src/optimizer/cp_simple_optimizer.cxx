@@ -46,10 +46,6 @@ template <typename dtype> double CPSimpleOptimizer<dtype>::step() {
     // calculate gradient
     this->grad_W[i]["ij"] =
         -M["ij"] + this->W[i]->operator[]("ik") * this->S["kj"];
-
-    if (i == 0) {
-      M.print();
-    }
     // subproblem M=W*S
     cholesky_solve(M, *this->W[i], this->S);
     // recover the char

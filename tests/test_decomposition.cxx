@@ -31,7 +31,9 @@ void TEST_decomposition(World &dw) {
 }
 
 void TEST_CPD(World &dw) {
-  cout << "Test CPD" << endl;
+  if (dw.rank == 0) {
+    cout << "Test CPD" << endl;
+  }
 
   // test init
   int lens[3];
@@ -73,22 +75,22 @@ void TEST_CPD(World &dw) {
   ofstream Plot_File("results/test.csv");
 
   decom.Init(V, W);
-  decom.als(1e-5, 1000, 1, 100, Plot_File);
+  decom.als(1e-5, 1000, 3, 100, Plot_File);
 
-  // decom_dt.Init(V, W_dt);
-  // decom_dt.als(1e-5, 1000, 10, 100, Plot_File);
+  decom_dt.Init(V, W_dt);
+  decom_dt.als(1e-5, 1000, 3, 100, Plot_File);
 
   decom_local.Init(V, W_local);
-  decom_local.als(1e-5, 1000, 1, 100, Plot_File);
+  decom_local.als(1e-5, 1000, 3, 100, Plot_File);
 
   for (int i = 0; i < V->order; i++) {
     Matrix<> diff = Matrix<>(lens[i], 5, dw);
-    // diff["ij"] = W[i]->operator[]("ij") - W_dt[i]->operator[]("ij");
-    // double diff_norm = diff.norm2();
-    // assert(diff_norm < 1e-8);
+    diff["ij"] = W[i]->operator[]("ij") - W_dt[i]->operator[]("ij");
+    double diff_norm = diff.norm2();
+    assert(diff_norm < 1e-8);
 
     diff["ij"] = W[i]->operator[]("ij") - W_local[i]->operator[]("ij");
-    double diff_norm = diff.norm2();
+    diff_norm = diff.norm2();
     assert(diff_norm < 1e-8);
   }
 }
@@ -104,7 +106,8 @@ int main(int argc, char **argv) {
   TEST_local_mttkrp(dw);
   TEST_CPD(dw);
 
-  cout << "All tests passed" << endl;
-
+  if (dw.rank == 0) {
+    cout << "All tests passed" << endl;
+  }
   MPI_Finalize();
 }
