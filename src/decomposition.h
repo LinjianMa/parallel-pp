@@ -10,7 +10,7 @@ template <typename dtype> class Decomposition {
 public:
   Decomposition(int order, int size, int r, World &dw);
 
-  Decomposition(int order, int *size, int *r, World &dw);
+  Decomposition(int order, int *size, int r, World &dw);
 
   // Decomposition(const Decomposition & other);
 

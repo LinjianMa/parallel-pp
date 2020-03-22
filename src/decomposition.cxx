@@ -18,15 +18,15 @@ Decomposition<dtype>::Decomposition(int order, int size_, int r, World &dw) {
 }
 
 template <typename dtype>
-Decomposition<dtype>::Decomposition(int order, int *size_, int *r, World &dw) {
+Decomposition<dtype>::Decomposition(int order, int *size_, int r, World &dw) {
 
-  *world = dw;
+  world = &dw;
   this->order = order;
   this->size = new int[order];
   this->rank = new int[order];
   for (int i = 0; i < order; i++) {
     size[i] = size_[i];
-    rank[i] = r[i];
+    rank[i] = r;
   }
 }
 

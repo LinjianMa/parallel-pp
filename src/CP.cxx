@@ -17,17 +17,15 @@ CPD<dtype, Optimizer>::CPD(int order, int size_, int r, World &dw)
 }
 
 template <typename dtype, class Optimizer>
-CPD<dtype, Optimizer>::CPD(int order, int *size_, int *r, World &dw)
+CPD<dtype, Optimizer>::CPD(int order, int *size_, int r, World &dw)
     : Decomposition<dtype>(order, size_, r, dw) {
 
-  int size0 = size_[0];
-  int rank0 = r[0];
   for (int i = 1; i < order; i++) {
-    assert(this->size[i] == size0);
-    assert(this->rank[i] == rank0);
+    assert(this->size[i] == size_[i]);
+    assert(this->rank[i] == r);
   }
 
-  optimizer = new Optimizer(order, r[0], dw);
+  optimizer = new Optimizer(order, r, dw);
 
   // make the char seq_V
   seq_V[order] = '\0';

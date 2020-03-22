@@ -33,10 +33,16 @@ void TEST_decomposition(World &dw) {
 void TEST_CPD(World &dw) {
   cout << "Test CPD" << endl;
 
+  // test init
+  int lens[3];
+  int size = 8;
+  for (int i = 0; i < 3; i++)
+    lens[i] = size + 3 * i;
+
   // test dimension
-  CPD<double, CPSimpleOptimizer<double>> decom(3, 13, 5, dw);
-  CPD<double, CPDTOptimizer<double>> decom_dt(3, 13, 5, dw);
-  CPD<double, CPLocalOptimizer<double>> decom_local(3, 13, 5, dw);
+  CPD<double, CPSimpleOptimizer<double>> decom(3, lens, 5, dw);
+  CPD<double, CPDTOptimizer<double>> decom_dt(3, lens, 5, dw);
+  CPD<double, CPLocalOptimizer<double>> decom_local(3, lens, 5, dw);
 
   assert(decom.order == 3);
   assert(decom.rank[0] == 5);
@@ -47,11 +53,6 @@ void TEST_CPD(World &dw) {
   assert(decom_local.order == 3);
   assert(decom_local.rank[0] == 5);
 
-  // test init
-  int lens[3];
-  for (int i = 0; i < 3; i++)
-    lens[i] = 13;
-
   Tensor<> *V = new Tensor<>(3, lens, dw);
   V->fill_random(0, 1);
 
@@ -60,9 +61,9 @@ void TEST_CPD(World &dw) {
   Matrix<> **W_local = (Matrix<> **)malloc(3 * sizeof(Matrix<> *));
 
   for (int i = 0; i < 3; i++) {
-    W[i] = new Matrix<>(13, 5, dw);
-    W_dt[i] = new Matrix<>(13, 5, dw);
-    W_local[i] = new Matrix<>(13, 5, dw);
+    W[i] = new Matrix<>(lens[i], 5, dw);
+    W_dt[i] = new Matrix<>(lens[i], 5, dw);
+    W_local[i] = new Matrix<>(lens[i], 5, dw);
 
     W[i]->fill_random(0, 1);
     W_dt[i]->operator[]("ij") = W[i]->operator[]("ij");
@@ -72,23 +73,23 @@ void TEST_CPD(World &dw) {
   ofstream Plot_File("results/test.csv");
 
   decom.Init(V, W);
-  decom.als(1e-5, 1000, 10, 100, Plot_File);
+  decom.als(1e-5, 1000, 1, 100, Plot_File);
 
-  decom_dt.Init(V, W_dt);
-  decom_dt.als(1e-5, 1000, 10, 100, Plot_File);
+  // decom_dt.Init(V, W_dt);
+  // decom_dt.als(1e-5, 1000, 10, 100, Plot_File);
 
-  // decom_local.Init(V, W_local);
-  // decom_local.als(1e-5, 1000, 10, 100, Plot_File);
+  decom_local.Init(V, W_local);
+  decom_local.als(1e-5, 1000, 1, 100, Plot_File);
 
   for (int i = 0; i < V->order; i++) {
-    Matrix<> diff = Matrix<>(13, 5, dw);
-    diff["ij"] = W[i]->operator[]("ij") - W_dt[i]->operator[]("ij");
+    Matrix<> diff = Matrix<>(lens[i], 5, dw);
+    // diff["ij"] = W[i]->operator[]("ij") - W_dt[i]->operator[]("ij");
+    // double diff_norm = diff.norm2();
+    // assert(diff_norm < 1e-8);
+
+    diff["ij"] = W[i]->operator[]("ij") - W_local[i]->operator[]("ij");
     double diff_norm = diff.norm2();
     assert(diff_norm < 1e-8);
-
-    // diff["ij"] = W[i]->operator[]("ij") - W_local[i]->operator[]("ij");
-    // diff_norm = diff.norm2();
-    // assert(diff_norm < 1e-8);
   }
 }
 
@@ -100,7 +101,7 @@ int main(int argc, char **argv) {
 
   World dw(argc, argv);
 
-  // TEST_local_mttkrp(dw);
+  TEST_local_mttkrp(dw);
   TEST_CPD(dw);
 
   cout << "All tests passed" << endl;

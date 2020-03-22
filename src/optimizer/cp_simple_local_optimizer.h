@@ -13,7 +13,7 @@ public:
 
   ~CPLocalOptimizer();
 
-  void configure(Tensor<dtype> *input, Matrix<dtype> *mat, Matrix<dtype> *grad,
+  void configure(Tensor<dtype> *input, Matrix<dtype> **mat, Matrix<dtype> *grad,
                  double lambda);
 
   double step();

@@ -949,7 +949,7 @@ void KhatriRao_contract(Matrix<> &M, Tensor<> &V, Matrix<> **W, int *index,
   // build len for V_temp
   int lens_V[V.order];
   for (int m = 0; m < V.order - 1; m++) {
-    lens_V[m] = lens_H[m];
+    lens_V[m] = lens_H[m + 1];
   }
   lens_V[V.order - 1] = K;
   V_temp = Tensor<>(V.order, lens_V, dw);
@@ -978,7 +978,7 @@ void KhatriRao_contract(Matrix<> &M, Tensor<> &V, Matrix<> **W, int *index,
     // build len for V_temp
     int lens_V[V.order - j];
     for (int m = j; m < V.order - 1; m++) {
-      lens_V[m - j] = lens_H[m];
+      lens_V[m - j] = lens_H[m + 1];
     }
     lens_V[V.order - j - 1] = K;
     V_temp = Tensor<>(V.order - j, lens_V, dw);

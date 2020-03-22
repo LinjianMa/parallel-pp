@@ -33,12 +33,10 @@ template <typename dtype> double CPSimpleOptimizer<dtype>::step() {
      */
     int lens_H[order];
     int index[order];
-    for (int j = 0; j < order - 1; j++) {
+    for (int j = 0; j <= order - 1; j++) {
       index[j] = (int)(seq_V[j] - 'a');
       lens_H[j] = this->W[index[j]]->nrow;
     }
-    index[order - 1] = (int)(seq_V[order - 1] - 'a');
-    lens_H[order - 1] = this->W[i]->ncol;
     // initialize matrix M
     Matrix<dtype> M = Matrix<dtype>(this->W[i]->nrow, this->W[i]->ncol);
     // Khatri-Rao Product C[I,J,K]= A[I,K](op)B[J,K]
@@ -48,6 +46,10 @@ template <typename dtype> double CPSimpleOptimizer<dtype>::step() {
     // calculate gradient
     this->grad_W[i]["ij"] =
         -M["ij"] + this->W[i]->operator[]("ik") * this->S["kj"];
+
+    if (i == 0) {
+      M.print();
+    }
     // subproblem M=W*S
     cholesky_solve(M, *this->W[i], this->S);
     // recover the char
