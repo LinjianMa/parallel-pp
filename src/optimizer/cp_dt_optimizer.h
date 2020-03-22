@@ -19,12 +19,12 @@ public:
   /**
    * \brief First level MTTKRP contractions.
    */
-  void mttkrp_map_init(int left_index);
+  void mttkrp_map_init(int left_index, World *dw, Matrix<> **mat, Tensor<> *T);
 
   /**
    * \brief MTTKRP contractions except the first level.
    */
-  void mttkrp_map_DT(string index);
+  void mttkrp_map_DT(string index, World *dw, Matrix<> **mat, Tensor<> *T);
 
   char seq_V[100];
   // used for doing the first contraction
