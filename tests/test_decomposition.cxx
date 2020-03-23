@@ -46,6 +46,7 @@ void TEST_CPD(World &dw) {
   CPD<double, CPDTOptimizer<double>> decom_dt(3, lens, 5, dw);
   CPD<double, CPDTLocalOptimizer<double>> decom_dt_local(3, lens, 5, dw);
   CPD<double, CPLocalOptimizer<double>> decom_local(3, lens, 5, dw);
+  CPD<double, CPPPOptimizer<double>> decom_pp(3, lens, 5, dw, 1e-5);
 
   assert(decom.order == 3);
   assert(decom.rank[0] == 5);
@@ -59,6 +60,9 @@ void TEST_CPD(World &dw) {
   assert(decom_dt_local.order == 3);
   assert(decom_dt_local.rank[0] == 5);
 
+  assert(decom_pp.order == 3);
+  assert(decom_pp.rank[0] == 5);
+
   Tensor<> *V = new Tensor<>(3, lens, dw);
   V->fill_random(0, 1);
 
@@ -66,17 +70,20 @@ void TEST_CPD(World &dw) {
   Matrix<> **W_dt = (Matrix<> **)malloc(3 * sizeof(Matrix<> *));
   Matrix<> **W_dt_local = (Matrix<> **)malloc(3 * sizeof(Matrix<> *));
   Matrix<> **W_local = (Matrix<> **)malloc(3 * sizeof(Matrix<> *));
+  Matrix<> **W_pp = (Matrix<> **)malloc(3 * sizeof(Matrix<> *));
 
   for (int i = 0; i < 3; i++) {
     W[i] = new Matrix<>(lens[i], 5, dw);
     W_dt[i] = new Matrix<>(lens[i], 5, dw);
     W_local[i] = new Matrix<>(lens[i], 5, dw);
     W_dt_local[i] = new Matrix<>(lens[i], 5, dw);
+    W_pp[i] = new Matrix<>(lens[i], 5, dw);
 
     W[i]->fill_random(0, 1);
     W_dt[i]->operator[]("ij") = W[i]->operator[]("ij");
     W_local[i]->operator[]("ij") = W[i]->operator[]("ij");
     W_dt_local[i]->operator[]("ij") = W[i]->operator[]("ij");
+    W_pp[i]->operator[]("ij") = W[i]->operator[]("ij");
   }
 
   ofstream Plot_File("results/test.csv");
@@ -93,6 +100,9 @@ void TEST_CPD(World &dw) {
   decom_dt_local.Init(V, W_dt_local);
   decom_dt_local.als(1e-5, 1000, 3, 100, Plot_File);
 
+  decom_pp.Init(V, W_pp);
+  decom_pp.als(1e-5, 1000, 3, 100, Plot_File);
+
   for (int i = 0; i < V->order; i++) {
     Matrix<> diff = Matrix<>(lens[i], 5, dw);
     diff["ij"] = W[i]->operator[]("ij") - W_dt[i]->operator[]("ij");
@@ -104,6 +114,10 @@ void TEST_CPD(World &dw) {
     assert(diff_norm < 1e-8);
 
     diff["ij"] = W[i]->operator[]("ij") - W_dt_local[i]->operator[]("ij");
+    diff_norm = diff.norm2();
+    assert(diff_norm < 1e-8);
+
+    diff["ij"] = W[i]->operator[]("ij") - W_pp[i]->operator[]("ij");
     diff_norm = diff.norm2();
     assert(diff_norm < 1e-8);
   }
