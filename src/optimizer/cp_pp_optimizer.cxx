@@ -57,38 +57,43 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_dt() {
   return 1.;
 }
 
+template <typename dtype> Matrix<> CPPPOptimizer<dtype>::mttkrp_approx(int i) {
+  vector<int> node_index = {i};
+  string nodename = get_nodename(node_index);
+
+  Matrix<> N = Matrix<>(*this->name_tensor_map[nodename]);
+  for (int j = 0; j < i; j++) {
+    vector<int> parent_index = {j, i};
+    string parentname = get_nodename(parent_index);
+    vector<string> einstr = get_einstr(node_index, parent_index, j);
+    char const *parent_str = einstr[0].c_str();
+    char const *mat_str = einstr[1].c_str();
+    char const *out_str = einstr[2].c_str();
+    N[out_str] =
+        N[out_str] + this->name_tensor_map[parentname]->operator[](parent_str) *
+                         this->dW[j]->operator[](mat_str);
+  }
+  for (int j = i + 1; j < this->order; j++) {
+    vector<int> parent_index = {i, j};
+    string parentname = get_nodename(parent_index);
+    vector<string> einstr = get_einstr(node_index, parent_index, j);
+    char const *parent_str = einstr[0].c_str();
+    char const *mat_str = einstr[1].c_str();
+    char const *out_str = einstr[2].c_str();
+    N[out_str] =
+        N[out_str] + this->name_tensor_map[parentname]->operator[](parent_str) *
+                         this->dW[j]->operator[](mat_str);
+  }
+  return N;
+}
+
 template <typename dtype> double CPPPOptimizer<dtype>::step_pp() {
   if (this->world->rank == 0) {
     cout << "***** pairwise perturbation step *****" << endl;
   }
 
   for (int i = 0; i < this->order; i++) {
-    vector<int> node_index = {i};
-    string nodename = get_nodename(node_index);
-
-    Matrix<> N = Matrix<>(*this->name_tensor_map[nodename]);
-    for (int j = 0; j < i; j++) {
-      vector<int> parent_index = {j, i};
-      string parentname = get_nodename(parent_index);
-      vector<string> einstr = get_einstr(node_index, parent_index, j);
-      char const *parent_str = einstr[0].c_str();
-      char const *mat_str = einstr[1].c_str();
-      char const *out_str = einstr[2].c_str();
-      N[out_str] = N[out_str] +
-                   this->name_tensor_map[parentname]->operator[](parent_str) *
-                       this->dW[j]->operator[](mat_str);
-    }
-    for (int j = i + 1; j < this->order; j++) {
-      vector<int> parent_index = {i, j};
-      string parentname = get_nodename(parent_index);
-      vector<string> einstr = get_einstr(node_index, parent_index, j);
-      char const *parent_str = einstr[0].c_str();
-      char const *mat_str = einstr[1].c_str();
-      char const *out_str = einstr[2].c_str();
-      N[out_str] = N[out_str] +
-                   this->name_tensor_map[parentname]->operator[](parent_str) *
-                       this->dW[j]->operator[](mat_str);
-    }
+    Matrix<> N = mttkrp_approx(i);
     CPOptimizer<dtype>::update_S(i);
     Matrix<> update_W = Matrix<>(*this->W[i]);
     cholesky_solve(N, update_W, this->S);
@@ -206,7 +211,8 @@ void CPPPOptimizer<dtype>::get_parentnode(vector<int> nodeindex,
 }
 
 template <typename dtype>
-void CPPPOptimizer<dtype>::initialize_treenode(vector<int> nodeindex, World *dw) {
+void CPPPOptimizer<dtype>::initialize_treenode(vector<int> nodeindex, World *dw,
+                                               Tensor<> *T, Matrix<> **mat) {
 
   string nodename = get_nodename(nodeindex);
 
@@ -222,27 +228,28 @@ void CPPPOptimizer<dtype>::initialize_treenode(vector<int> nodeindex, World *dw)
   char const *out_str = einstr[2].c_str();
 
   if (name_index_map.find(parent_nodename) == name_index_map.end()) {
-    initialize_treenode(parent_nodeindex, dw);
+    initialize_treenode(parent_nodeindex, dw, T, mat);
   }
 
   // store that into the name_tensor_map
   int lens[strlen(out_str)];
   for (int ii = 0; ii < strlen(out_str); ii++) {
     if (out_str[ii] == 'R')
-      lens[ii] = this->W[0]->ncol;
+      lens[ii] = mat[0]->ncol;
     else
-      lens[ii] = this->V->lens[int(out_str[ii] - 'a')];
+      lens[ii] = T->lens[int(out_str[ii] - 'a')];
   }
-  name_tensor_map[nodename] =
-      new Tensor<dtype>(strlen(out_str), lens, *dw);
+  name_tensor_map[nodename] = new Tensor<dtype>(strlen(out_str), lens, *dw);
   name_index_map[nodename] = nodeindex;
 
   name_tensor_map[nodename]->operator[](out_str) =
       name_tensor_map[parent_nodename]->operator[](parent_str) *
-      this->W[contract_index]->operator[](mat_str);
+      mat[contract_index]->operator[](mat_str);
 }
 
-template <typename dtype> void CPPPOptimizer<dtype>::initialize_tree(World *dw) {
+template <typename dtype>
+void CPPPOptimizer<dtype>::initialize_tree(World *dw, Tensor<> *T,
+                                           Matrix<> **mat) {
 
   name_tensor_map.clear();
   name_index_map.clear();
@@ -251,7 +258,7 @@ template <typename dtype> void CPPPOptimizer<dtype>::initialize_tree(World *dw) 
     fulllist.push_back(i);
   }
   name_index_map["0"] = fulllist;
-  name_tensor_map["0"] = this->V;
+  name_tensor_map["0"] = T;
 
   for (int i = 0; i < this->order; i++) {
     dW[i]->operator[]("ij") = 0.;
@@ -259,11 +266,11 @@ template <typename dtype> void CPPPOptimizer<dtype>::initialize_tree(World *dw) 
   for (int ii = 0; ii < this->order; ii++)
     for (int jj = ii + 1; jj < this->order; jj++) {
       vector<int> nodeindex = {ii, jj};
-      initialize_treenode(nodeindex, dw);
+      initialize_treenode(nodeindex, dw, T, mat);
     }
   for (int ii = 0; ii < this->order; ii++) {
     vector<int> nodeindex = {ii};
-    initialize_treenode(nodeindex, dw);
+    initialize_treenode(nodeindex, dw, T, mat);
   }
 }
 
@@ -276,7 +283,7 @@ template <typename dtype> double CPPPOptimizer<dtype>::step() {
   if (this->pp == true) {
     if (this->reinitialize_tree == true) {
       this->restart = true;
-      initialize_tree(this->world);
+      initialize_tree(this->world, this->V, this->W);
       this->reinitialize_tree = false;
     }
     num_sweep = step_pp();

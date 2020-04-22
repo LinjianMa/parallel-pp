@@ -31,9 +31,12 @@ public:
   void get_parentnode(vector<int> nodeindex, string &parent_nodename,
                       vector<int> &parent_index, int &contract_index);
 
-  void initialize_treenode(vector<int> nodeindex, World *dw);
+  void initialize_treenode(vector<int> nodeindex, World *dw, Tensor<> *T,
+                           Matrix<> **mat);
 
-  void initialize_tree(World *dw);
+  void initialize_tree(World *dw, Tensor<> *T, Matrix<> **mat);
+
+  Matrix<> mttkrp_approx(int i);
 
   double tol_restart_dt;
   bool restart;
