@@ -32,31 +32,23 @@ public:
 
   // W: output solutions
   Matrix<dtype> **W = NULL;
-  Matrix<dtype> **mttkrp = NULL;
+  Matrix<dtype> **W_local = NULL;
+  // arrs[i] is the local data for W.
+  dtype **arrs = NULL;
 
-  // redistributed factored matrices
-  // Tensor<dtype> **redist_mats = NULL;
+  Matrix<dtype> **mttkrp = NULL;
+  Matrix<dtype> **mttkrp_local_mat = NULL;
+  // arrs_mttkrp[i] is the local data for mttkrp.
+  dtype **arrs_mttkrp = NULL;
 
   World *world;
   World *sworld;
-
-  // arrs[i] is the local data for W.
-  dtype **arrs = NULL;
-  Matrix<dtype> **W_local = NULL;
-
-  // arrs_mttkrp[i] is the local data for mttkrp.
-  dtype **arrs_mttkrp = NULL;
-  Matrix<dtype> **mttkrp_local_mat = NULL;
 
   // physical index of each dimension
   int64_t *ldas = NULL;
 
   // number of processors in each dimension
   int *phys_phase = NULL;
-
-  // number of pairs in V
-  int64_t npair;
-  Pair<dtype> *pairs = NULL;
 
   Partition par;
 

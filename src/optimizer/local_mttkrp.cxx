@@ -20,8 +20,6 @@ template <typename dtype> LocalMTTKRP<dtype>::~LocalMTTKRP() {
   free(arrs);
   free(arrs_mttkrp);
   free(mttkrp);
-  if (!V->is_sparse)
-    V->sr->pair_dealloc((char *)pairs);
   delete V_local;
 }
 
@@ -234,8 +232,6 @@ void LocalMTTKRP<dtype>::setup(Tensor<dtype> *V, Matrix<dtype> **mat_list) {
   for (int i = 0; i < order; i++) {
     this->phys_phase[i] = V->edge_map[i].calc_phys_phase();
   }
-
-  V->get_local_pairs(&this->npair, &this->pairs, true, false);
 
   this->ldas = (int64_t *)malloc(order * sizeof(int64_t));
   ldas[0] = 1;

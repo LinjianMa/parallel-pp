@@ -206,7 +206,7 @@ void CPPPOptimizer<dtype>::get_parentnode(vector<int> nodeindex,
 }
 
 template <typename dtype>
-void CPPPOptimizer<dtype>::initialize_treenode(vector<int> nodeindex) {
+void CPPPOptimizer<dtype>::initialize_treenode(vector<int> nodeindex, World *dw) {
 
   string nodename = get_nodename(nodeindex);
 
@@ -222,7 +222,7 @@ void CPPPOptimizer<dtype>::initialize_treenode(vector<int> nodeindex) {
   char const *out_str = einstr[2].c_str();
 
   if (name_index_map.find(parent_nodename) == name_index_map.end()) {
-    initialize_treenode(parent_nodeindex);
+    initialize_treenode(parent_nodeindex, dw);
   }
 
   // store that into the name_tensor_map
@@ -234,7 +234,7 @@ void CPPPOptimizer<dtype>::initialize_treenode(vector<int> nodeindex) {
       lens[ii] = this->V->lens[int(out_str[ii] - 'a')];
   }
   name_tensor_map[nodename] =
-      new Tensor<dtype>(strlen(out_str), lens, *this->world);
+      new Tensor<dtype>(strlen(out_str), lens, *dw);
   name_index_map[nodename] = nodeindex;
 
   name_tensor_map[nodename]->operator[](out_str) =
@@ -242,7 +242,7 @@ void CPPPOptimizer<dtype>::initialize_treenode(vector<int> nodeindex) {
       this->W[contract_index]->operator[](mat_str);
 }
 
-template <typename dtype> void CPPPOptimizer<dtype>::initialize_tree() {
+template <typename dtype> void CPPPOptimizer<dtype>::initialize_tree(World *dw) {
 
   name_tensor_map.clear();
   name_index_map.clear();
@@ -259,11 +259,11 @@ template <typename dtype> void CPPPOptimizer<dtype>::initialize_tree() {
   for (int ii = 0; ii < this->order; ii++)
     for (int jj = ii + 1; jj < this->order; jj++) {
       vector<int> nodeindex = {ii, jj};
-      initialize_treenode(nodeindex);
+      initialize_treenode(nodeindex, dw);
     }
   for (int ii = 0; ii < this->order; ii++) {
     vector<int> nodeindex = {ii};
-    initialize_treenode(nodeindex);
+    initialize_treenode(nodeindex, dw);
   }
 }
 
@@ -276,7 +276,7 @@ template <typename dtype> double CPPPOptimizer<dtype>::step() {
   if (this->pp == true) {
     if (this->reinitialize_tree == true) {
       this->restart = true;
-      initialize_tree();
+      initialize_tree(this->world);
       this->reinitialize_tree = false;
     }
     num_sweep = step_pp();
