@@ -20,17 +20,30 @@ public:
 
   double step_pp();
 
-  void initialize_tree();
-
   void configure(Tensor<dtype> *input, Matrix<dtype> **mat, Matrix<dtype> *grad,
                  double lambda);
+
+  vector<string> get_einstr(vector<int> nodeindex, vector<int> parent_nodeindex,
+                            int contract_index);
+
+  string get_nodename(vector<int> nodeindex);
+
+  void get_parentnode(vector<int> nodeindex, string &parent_nodename,
+                      vector<int> &parent_index, int &contract_index);
+
+  void initialize_treenode(vector<int> nodeindex);
+
+  void initialize_tree();
 
   double tol_restart_dt;
   bool restart;
   bool pp = false;
   bool reinitialize_tree;
 
-  Matrix<> **W_prev;
+  map<string, Tensor<dtype> *> name_tensor_map;
+  map<string, vector<int>> name_index_map;
+
+  Matrix<> **dW;
 };
 
 #include "cp_pp_optimizer.cxx"
