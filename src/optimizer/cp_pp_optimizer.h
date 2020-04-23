@@ -7,7 +7,8 @@
 
 using namespace CTF;
 
-template <typename dtype> class CPPPOptimizer : public CPDTOptimizer<dtype> {
+template <typename dtype>
+class CPPPOptimizer : virtual public CPDTOptimizer<dtype> {
 
 public:
   CPPPOptimizer(int order, int r, World &dw, double tol_restart_dt);
@@ -34,9 +35,10 @@ public:
   void initialize_treenode(vector<int> nodeindex, World *dw, Tensor<> *T,
                            Matrix<> **mat);
 
-  void initialize_tree(World *dw, Tensor<> *T, Matrix<> **mat);
+  void initialize_tree(World *dw, Tensor<> *T, Matrix<> **mat,
+                       Matrix<> **deltaW);
 
-  Matrix<> mttkrp_approx(int i);
+  Matrix<> mttkrp_approx(int i, Matrix<> **dW);
 
   double tol_restart_dt;
   bool restart;

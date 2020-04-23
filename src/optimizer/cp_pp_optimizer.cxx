@@ -14,6 +14,7 @@ CPPPOptimizer<dtype>::CPPPOptimizer(int order, int r, World &dw,
 
 template <typename dtype> CPPPOptimizer<dtype>::~CPPPOptimizer() {
   // delete S;
+  free(this->dW);
 }
 
 template <typename dtype>
@@ -22,7 +23,7 @@ void CPPPOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> **mat,
 
   CPOptimizer<dtype>::configure(input, mat, grad, lambda);
   for (int i = 0; i < this->order; i++) {
-    dW[i] = new Matrix<>(this->W[i]->nrow, this->rank, *this->world);
+    this->dW[i] = new Matrix<>(this->W[i]->nrow, this->rank, *this->world);
   }
 }
 
@@ -57,7 +58,8 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_dt() {
   return 1.;
 }
 
-template <typename dtype> Matrix<> CPPPOptimizer<dtype>::mttkrp_approx(int i) {
+template <typename dtype>
+Matrix<> CPPPOptimizer<dtype>::mttkrp_approx(int i, Matrix<> **dW) {
   vector<int> node_index = {i};
   string nodename = get_nodename(node_index);
 
@@ -71,7 +73,7 @@ template <typename dtype> Matrix<> CPPPOptimizer<dtype>::mttkrp_approx(int i) {
     char const *out_str = einstr[2].c_str();
     N[out_str] =
         N[out_str] + this->name_tensor_map[parentname]->operator[](parent_str) *
-                         this->dW[j]->operator[](mat_str);
+                         dW[j]->operator[](mat_str);
   }
   for (int j = i + 1; j < this->order; j++) {
     vector<int> parent_index = {i, j};
@@ -82,7 +84,7 @@ template <typename dtype> Matrix<> CPPPOptimizer<dtype>::mttkrp_approx(int i) {
     char const *out_str = einstr[2].c_str();
     N[out_str] =
         N[out_str] + this->name_tensor_map[parentname]->operator[](parent_str) *
-                         this->dW[j]->operator[](mat_str);
+                         dW[j]->operator[](mat_str);
   }
   return N;
 }
@@ -93,7 +95,7 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_pp() {
   }
 
   for (int i = 0; i < this->order; i++) {
-    Matrix<> N = mttkrp_approx(i);
+    Matrix<> N = mttkrp_approx(i, this->dW);
     CPOptimizer<dtype>::update_S(i);
     Matrix<> update_W = Matrix<>(*this->W[i]);
     cholesky_solve(N, update_W, this->S);
@@ -249,7 +251,7 @@ void CPPPOptimizer<dtype>::initialize_treenode(vector<int> nodeindex, World *dw,
 
 template <typename dtype>
 void CPPPOptimizer<dtype>::initialize_tree(World *dw, Tensor<> *T,
-                                           Matrix<> **mat) {
+                                           Matrix<> **mat, Matrix<> **deltaW) {
 
   name_tensor_map.clear();
   name_index_map.clear();
@@ -261,7 +263,7 @@ void CPPPOptimizer<dtype>::initialize_tree(World *dw, Tensor<> *T,
   name_tensor_map["0"] = T;
 
   for (int i = 0; i < this->order; i++) {
-    dW[i]->operator[]("ij") = 0.;
+    deltaW[i]->operator[]("ij") = 0.;
   }
   for (int ii = 0; ii < this->order; ii++)
     for (int jj = ii + 1; jj < this->order; jj++) {
@@ -283,7 +285,7 @@ template <typename dtype> double CPPPOptimizer<dtype>::step() {
   if (this->pp == true) {
     if (this->reinitialize_tree == true) {
       this->restart = true;
-      initialize_tree(this->world, this->V, this->W);
+      initialize_tree(this->world, this->V, this->W, this->dW);
       this->reinitialize_tree = false;
     }
     num_sweep = step_pp();

@@ -9,7 +9,7 @@
 using namespace CTF;
 
 template <typename dtype>
-class CPDTLocalOptimizer : public CPDTOptimizer<dtype> {
+class CPDTLocalOptimizer : virtual public CPDTOptimizer<dtype> {
 
 public:
   CPDTLocalOptimizer(int order, int r, World &dw);

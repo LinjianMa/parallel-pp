@@ -33,7 +33,7 @@ void TEST_local_mttkrp(World &dw) {
   LocalMTTKRP<double> *local_mttkrp = new LocalMTTKRP<double>(3, rank, dw);
   local_mttkrp->setup(V, W_local);
   for (int i = 0; i < 3; i++) {
-    local_mttkrp->distribute_W(i);
+    local_mttkrp->distribute_W(i, local_mttkrp->W, local_mttkrp->W_local);
   }
   local_mttkrp->setup_V_local_data();
   local_mttkrp->construct_mttkrp_locals();

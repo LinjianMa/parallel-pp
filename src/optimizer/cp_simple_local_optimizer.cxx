@@ -31,7 +31,7 @@ void CPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
   CPOptimizer<dtype>::configure(input, mat, grad, lambda);
   local_mttkrp->setup(input, mat);
   for (int i = 0; i < this->order; i++) {
-    local_mttkrp->distribute_W(i);
+    local_mttkrp->distribute_W(i, local_mttkrp->W, local_mttkrp->W_local);
   }
   local_mttkrp->construct_mttkrp_locals();
   local_mttkrp->setup_V_local_data();
@@ -57,7 +57,7 @@ template <typename dtype> double CPLocalOptimizer<dtype>::step() {
     M_reshape["ij"] = local_mttkrp->mttkrp[i]->operator[]("ij");
     cholesky_solve(M_reshape, *(this->W[i]), this->S);
 
-    local_mttkrp->distribute_W(i);
+    local_mttkrp->distribute_W(i, local_mttkrp->W, local_mttkrp->W_local);
   }
   return 1.;
 }

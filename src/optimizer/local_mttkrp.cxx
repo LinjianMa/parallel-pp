@@ -54,32 +54,33 @@ template <typename dtype> void LocalMTTKRP<dtype>::mttkrp_calc(int mode) {
                      this->W_local, index, lens_H, *this->sworld);
 }
 
-template <typename dtype> void LocalMTTKRP<dtype>::distribute_W(int i) {
+template <typename dtype>
+void LocalMTTKRP<dtype>::distribute_W(int i, Matrix<> **W, Matrix<> **W_local) {
 
   Timer t_mttkrp_remap("MTTKRP_distribute_W");
   t_mttkrp_remap.start();
 
-  Tensor<dtype> *mat = this->W[i];
+  Tensor<dtype> *mat = W[i];
 
   if (this->phys_phase[i] == 1) {
     // one process in dim i
     if (this->world->np == 1) {
       // overall only 1 process
-      this->arrs[i] = (dtype *)this->W[i]->data;
+      this->arrs[i] = (dtype *)W[i]->data;
     } else {
       // overall >1 processes
       char nonastr[2];
       nonastr[0] = 'a' - 1;
       nonastr[1] = 'a' - 2;
       Matrix<dtype> *m =
-          new Matrix<dtype>(this->W[i]->nrow, this->rank, nonastr, par[par_idx],
+          new Matrix<dtype>(W[i]->nrow, this->rank, nonastr, par[par_idx],
                             Idx_Partition(), 0, *this->world, *V->sr);
       m->operator[]("ij") = mat->operator[]("ij");
-      delete this->W[i];
-      this->W[i] = m;
+      delete W[i];
+      W[i] = m;
 
       arrs[i] = (dtype *)this->V->sr->alloc(this->V->lens[i] * this->rank);
-      this->W[i]->read_all(arrs[i], true);
+      W[i]->read_all(arrs[i], true);
     }
   } else {
     // multiple processes in dim i
@@ -101,22 +102,22 @@ template <typename dtype> void LocalMTTKRP<dtype>::distribute_W(int i) {
                            V->topo->dim_comm[topo_dim].rank, V->wrld->cdt);
 
     Matrix<dtype> *m =
-        new Matrix<dtype>(this->W[i]->nrow, this->rank, mat_idx, par[par_idx],
+        new Matrix<dtype>(W[i]->nrow, this->rank, mat_idx, par[par_idx],
                           Idx_Partition(), 0, *V->wrld, *V->sr);
 
     m->operator[]("ij") = mat->operator[]("ij");
 
-    delete this->W[i];
-    this->W[i] = m;
+    delete W[i];
+    W[i] = m;
 
     arrs[i] = (dtype *)m->data;
     cmdt.bcast(m->data, m->size, V->sr->mdtype(), 0);
   }
   // build the W_local
-  IASSERT(this->V->pad_edge_len[i] == this->W[i]->pad_edge_len[0]);
+  IASSERT(this->V->pad_edge_len[i] == W[i]->pad_edge_len[0]);
   int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->phys_phase[i]);
-  this->W_local[i] = new Matrix<dtype>(pad_local_col, this->rank, *sworld);
-  this->W_local[i]->data = (char *)arrs[i];
+  W_local[i] = new Matrix<dtype>(pad_local_col, this->rank, *sworld);
+  W_local[i]->data = (char *)arrs[i];
 
   t_mttkrp_remap.stop();
 }
