@@ -75,10 +75,16 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
     else
       lens[ii] = T->lens[int(seq_map_init[ii] - 'a')];
   }
-  mttkrp_map[seq_tree_top] = Tensor<dtype>(strlen(seq_map_init), lens, *dw);
+  Timer t_mttkrp_map_first_intermediate_init("mttkrp_map_first_intermediate_init");
+  t_mttkrp_map_first_intermediate_init.start();
+  mttkrp_map[seq_tree_top] = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
+  t_mttkrp_map_first_intermediate_init.stop();
 
-  mttkrp_map[seq_tree_top][seq_map_init] =
+  Timer t_mttkrp_map_first_intermediate("mttkrp_map_first_intermediate");
+  t_mttkrp_map_first_intermediate.start();
+  mttkrp_map[seq_tree_top]->operator[](seq_map_init) =
       (*T)[seq_V] * mat[left_index]->operator[](seq_matrix);
+  t_mttkrp_map_first_intermediate.stop();
 
   t_mttkrp_map_init.stop();
 }
@@ -106,9 +112,9 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index, World *dw,
     else
       lens[ii] = T->lens[int(indexes[index[ii] - 'a'])];
   }
-  mttkrp_map[index] = Tensor<dtype>(strlen(index_char), lens, *dw);
+  mttkrp_map[index] = new Tensor<dtype>(strlen(index_char), lens, *dw);
 
-  mttkrp_map[index][index_char] = mttkrp_map[parent_index][parent_index] *
+  mttkrp_map[index]->operator[](index_char) = mttkrp_map[parent_index]->operator[](parent_index) *
                                   mat[indexes[W_index]]->operator[](mat_index);
 
   t_mttkrp_map_DT.stop();
@@ -127,6 +133,9 @@ template <typename dtype> double CPDTOptimizer<dtype>::step() {
     left_index = left_index2;
   }
   // clear the Hash Table
+  for (auto const& x : this->mttkrp_map) {
+    delete x.second;
+  }
   mttkrp_map.clear();
 
   // reinitialize
@@ -148,7 +157,7 @@ template <typename dtype> double CPDTOptimizer<dtype>::step() {
     if (mttkrp_map.find(mat_seq) == mttkrp_map.end()) {
       mttkrp_map_DT(mat_seq, this->world, this->W, this->V);
     }
-    Matrix<dtype> M = mttkrp_map[mat_seq];
+    Matrix<dtype> M = * mttkrp_map[mat_seq];
 
     // calculating S
     CPOptimizer<dtype>::update_S(indexes[i]);

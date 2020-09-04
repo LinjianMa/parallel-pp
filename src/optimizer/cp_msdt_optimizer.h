@@ -35,7 +35,7 @@ public:
   char seq_tree_top[100];
 
   // maps
-  map<string, Tensor<dtype>> mttkrp_map;
+  map<string, Tensor<dtype> *> mttkrp_map;
   map<string, string> parent;
   map<string, string> contract_index;
 

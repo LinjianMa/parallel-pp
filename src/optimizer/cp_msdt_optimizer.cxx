@@ -138,8 +138,8 @@ void CPMSDTOptimizer<dtype>::mttkrp_map_init(int left_index) {
       lens[ii] = this->V->lens[int(seq_map_init[ii] - 'a')];
     }
   }
-  mttkrp_map[seq_tree_top] = Tensor<dtype>(strlen(seq_map_init), lens, *dw);
-  mttkrp_map[seq_tree_top][seq_map_init] =
+  mttkrp_map[seq_tree_top] = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
+  mttkrp_map[seq_tree_top]->operator[](seq_map_init) =
       (*this->V)[seq_V] * this->W[left_index]->operator[](seq_matrix);
 }
 
@@ -164,10 +164,10 @@ void CPMSDTOptimizer<dtype>::mttkrp_map_DT(string index) {
       lens[ii] = this->V->lens[int(indexes[index[ii] - 'a'])];
     }
   }
-  mttkrp_map[index] = Tensor<dtype>(strlen(index_char), lens, *dw);
+  mttkrp_map[index] = new Tensor<dtype>(strlen(index_char), lens, *dw);
 
-  mttkrp_map[index][index_char] =
-      mttkrp_map[parent_index][parent_index] *
+  mttkrp_map[index]->operator[](index_char) =
+      mttkrp_map[parent_index]->operator[](parent_index) *
       this->W[indexes[W_index]]->operator[](mat_index);
 }
 
@@ -177,6 +177,9 @@ template <typename dtype> double CPMSDTOptimizer<dtype>::step() {
   int order = this->order;
 
   // clear the Hash Table
+  for (auto const& x : mttkrp_map) {
+    delete x.second;
+  }
   mttkrp_map.clear();
   // reinitialize
   update_indexes();
@@ -196,7 +199,7 @@ template <typename dtype> double CPMSDTOptimizer<dtype>::step() {
     if (mttkrp_map.find(mat_seq) == mttkrp_map.end()) {
       mttkrp_map_DT(mat_seq);
     }
-    Matrix<dtype> M = mttkrp_map[mat_seq];
+    Matrix<dtype> M = * mttkrp_map[mat_seq];
 
     // calculating S
     CPOptimizer<dtype>::update_S(indexes[i]);

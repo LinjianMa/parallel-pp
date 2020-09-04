@@ -158,11 +158,11 @@ bool CPD<dtype, Optimizer>::als(double tol, double timelimit, int maxsweep,
         break;
     }
 
-    Timer_epoch tals_step("als-step");
-    tals_step.begin();
+    Timer tals_step("als-step");
+    tals_step.start();
     sweeps += this->optimizer->step();
     iters += 1;
-    tals_step.end();
+    tals_step.stop();
 
     // Normalize(this->W, this->order, *dw);
     // print .

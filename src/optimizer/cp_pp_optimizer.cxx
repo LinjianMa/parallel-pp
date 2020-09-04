@@ -252,7 +252,11 @@ void CPPPOptimizer<dtype>::initialize_treenode(vector<int> nodeindex, World *dw,
 template <typename dtype>
 void CPPPOptimizer<dtype>::initialize_tree(World *dw, Tensor<> *T,
                                            Matrix<> **mat, Matrix<> **deltaW) {
-
+  for (auto const& x : this->name_tensor_map) {
+    if (x.first != "0") {
+      delete x.second;
+    }
+  }
   name_tensor_map.clear();
   name_index_map.clear();
   vector<int> fulllist = {};

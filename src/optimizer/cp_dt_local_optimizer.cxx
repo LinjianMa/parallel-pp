@@ -41,6 +41,9 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step() {
     this->left_index = this->left_index2;
   }
   // clear the Hash Table
+  for (auto const& x : this->mttkrp_map) {
+    delete x.second;
+  }
   this->mttkrp_map.clear();
   // reinitialize
   CPDTOptimizer<dtype>::mttkrp_map_init(this->left_index, local_mttkrp->sworld,
@@ -68,7 +71,7 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step() {
                                           local_mttkrp->V_local);
     }
     local_mttkrp->mttkrp_local_mat[ii]->operator[]("ij") =
-        this->mttkrp_map[mat_seq]["ij"];
+        this->mttkrp_map[mat_seq]->operator[]("ij");
 
     local_mttkrp->post_mttkrp_reduce(ii);
 
