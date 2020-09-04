@@ -47,4 +47,7 @@ void TEST_local_mttkrp(World &dw) {
     double diff_norm = diff.norm2();
     assert(diff_norm < 1e-8);
   }
+  if (dw.rank == 0) {
+    cout << "Local mttkrp test passed" << endl;
+  }
 }

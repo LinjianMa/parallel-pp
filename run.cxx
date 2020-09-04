@@ -1,7 +1,5 @@
 #include "include/cpd.hpp"
 
-#ifndef TEST_SUITE
-
 char *getCmdOption(char **begin, char **end, const std::string &option) {
   char **itr = std::find(begin, end, option);
   if (itr != end && ++itr != end) {
@@ -15,10 +13,8 @@ int main(int argc, char **argv) {
   int const in_num = argc;
   char **input_str = argv;
 
-  char *model;  // 0 is CP, 1 is Tucker
   char *tensor; // which tensor    p / p2 / c / r / r2 / o /
-  int pp;       // 0 Dimention tree 1 pairwise perturbation 2 pp with <1
-                // update_percentage_pp
+  int method;   // 0 simple 1 Local-simple 2 DT 3 Local-DT 4 PP 5 Local-PP
   double update_percentage_pp; // pp update ratio. For each sweep only update
                                // update_percentage_pp*N matrices.
   /*
@@ -32,7 +28,6 @@ int main(int argc, char **argv) {
   int dim;                // number of dimensions
   int s;                  // tensor size in each dimension
   int R;                  // decomposition rank
-  int update_rank;        // used for optimizers with low rank updates
   int issparse;           // whether use the sparse routine or not
   double tol;             // global convergance tolerance
   double pp_res_tol;      // pp restart tolerance
@@ -42,10 +37,9 @@ int main(int argc, char **argv) {
   double col_min;         // collinearity min
   double col_max;         // collinearity max
   double ratio_noise;     // collinearity ratio of noise
-  double timelimit = 5e3; // time limits
-  int maxiter = 5e3;      // maximum iterations
+  double timelimit = 5e7; // time limits
+  int maxiter = 5e7;      // maximum iterations
   int resprint = 1;
-  int randomsvd = 0;
   char *tensorfile;
 
   MPI_Init(&argc, &argv);
@@ -54,24 +48,17 @@ int main(int argc, char **argv) {
 
   MPI_File fh;
 
-  if (getCmdOption(input_str, input_str + in_num, "-model")) {
-    model = getCmdOption(input_str, input_str + in_num, "-model");
-    if (model[0] != 'C' && model[0] != 'T')
-      model = "CP";
-  } else {
-    model = "CP";
-  }
   if (getCmdOption(input_str, input_str + in_num, "-tensor")) {
     tensor = getCmdOption(input_str, input_str + in_num, "-tensor");
   } else {
     tensor = "p";
   }
-  if (getCmdOption(input_str, input_str + in_num, "-pp")) {
-    pp = atoi(getCmdOption(input_str, input_str + in_num, "-pp"));
-    if (pp < 0)
-      pp = 0;
+  if (getCmdOption(input_str, input_str + in_num, "-method")) {
+    method = atoi(getCmdOption(input_str, input_str + in_num, "-method"));
+    if (method < 0)
+      method = 0;
   } else {
-    pp = 0;
+    method = 0;
   }
   if (getCmdOption(input_str, input_str + in_num, "-update_percentage_pp")) {
     update_percentage_pp = atof(
@@ -84,9 +71,9 @@ int main(int argc, char **argv) {
   if (getCmdOption(input_str, input_str + in_num, "-dim")) {
     dim = atoi(getCmdOption(input_str, input_str + in_num, "-dim"));
     if (dim < 0)
-      dim = 8;
+      dim = 3;
   } else {
-    dim = 8;
+    dim = 3;
   }
   if (getCmdOption(input_str, input_str + in_num, "-maxiter")) {
     maxiter = atoi(getCmdOption(input_str, input_str + in_num, "-maxiter"));
@@ -98,16 +85,16 @@ int main(int argc, char **argv) {
   if (getCmdOption(input_str, input_str + in_num, "-timelimit")) {
     timelimit = atof(getCmdOption(input_str, input_str + in_num, "-timelimit"));
     if (timelimit < 0)
-      timelimit = 5e3;
+      timelimit = 5e7;
   } else {
-    timelimit = 5e3;
+    timelimit = 5e7;
   }
   if (getCmdOption(input_str, input_str + in_num, "-size")) {
     s = atoi(getCmdOption(input_str, input_str + in_num, "-size"));
     if (s < 0)
-      s = 10;
+      s = 50;
   } else {
-    s = 10;
+    s = 50;
   }
   if (getCmdOption(input_str, input_str + in_num, "-rank")) {
     R = atoi(getCmdOption(input_str, input_str + in_num, "-rank"));
@@ -115,14 +102,6 @@ int main(int argc, char **argv) {
       R = s / 2;
   } else {
     R = s / 2;
-  }
-  if (getCmdOption(input_str, input_str + in_num, "-updaterank")) {
-    update_rank =
-        atoi(getCmdOption(input_str, input_str + in_num, "-updaterank"));
-    if (update_rank < 0)
-      update_rank = s / 2;
-  } else {
-    update_rank = s / 2;
   }
   if (getCmdOption(input_str, input_str + in_num, "-issparse")) {
     issparse = atoi(getCmdOption(input_str, input_str + in_num, "-issparse"));
@@ -137,13 +116,6 @@ int main(int argc, char **argv) {
       resprint = 10;
   } else {
     resprint = 10;
-  }
-  if (getCmdOption(input_str, input_str + in_num, "-randomsvd")) {
-    randomsvd = atoi(getCmdOption(input_str, input_str + in_num, "-randomsvd"));
-    if (randomsvd < 0 || randomsvd > 1)
-      randomsvd = 0;
-  } else {
-    randomsvd = 0;
   }
   if (getCmdOption(input_str, input_str + in_num, "-tol")) {
     tol = atof(getCmdOption(input_str, input_str + in_num, "-tol"));
@@ -210,10 +182,8 @@ int main(int argc, char **argv) {
     srand48(dw.rank * 1);
 
     if (dw.rank == 0) {
-      cout << "  model=  " << model << "  tensor=  " << tensor
-           << "  pp=  " << pp << endl;
-      cout << "  dim=  " << dim << "  size=  " << s << "  rank=  " << R
-           << "  updaterank=  " << update_rank << endl;
+      cout << "  tensor=  " << tensor << "  method=  " << method << endl;
+      cout << "  dim=  " << dim << "  size=  " << s << "  rank=  " << R << endl;
       cout << "  issparse=  " << issparse << "  tolerance=  " << tol
            << "  restarttol=  " << pp_res_tol << endl;
       cout << "  lambda=  " << lambda_ << "  magnitude=  " << magni
@@ -224,7 +194,6 @@ int main(int argc, char **argv) {
            << "  resprint=  " << resprint << endl;
       cout << "  tensorfile=  " << tensorfile
            << "  update_percentage_pp=  " << update_percentage_pp << endl;
-      cout << "  randomsvd=  " << randomsvd << endl;
     }
 
     // initialization of tensor
@@ -283,11 +252,10 @@ int main(int argc, char **argv) {
         Tensor<> *V_subworld = NULL;
         if (dw.rank == 0) {
           V_subworld = new Tensor<>(dim, issparse, lens, sworld);
-          V_subworld->fill_random(0.5, 1.);
+          V_subworld->fill_random(0., 1.);
         }
         V = Tensor<>(dim, issparse, lens, dw);
-        V.add_from_subworld(V_subworld); // Why?   when V is (-1,1), low rank
-                                         // Tucker has no accurate decomposition
+        V.add_from_subworld(V_subworld);
         delete V_subworld;
       } else {
         // r : tensor made by random matrices
@@ -353,8 +321,9 @@ int main(int argc, char **argv) {
     }
 
     double Vnorm = V.norm2();
-    if (dw.rank == 0)
+    if (dw.rank == 0) {
       cout << "Vnorm= " << Vnorm << endl;
+    }
     ofstream Plot_File(filename);
 
     Matrix<> **W = (Matrix<> **)malloc(
@@ -373,27 +342,54 @@ int main(int argc, char **argv) {
     }
 
     // V.write_dense_to_file (fh);
+    int lens[dim];
+    for (int i = 0; i < dim; i++)
+      lens[i] = V.lens[i];
 
-    Timer_epoch tALS("ALS");
-    tALS.begin();
-
-    if (model[0] == 'C') {
-      if (pp == 0) {
-        CPD<double, CPDTOptimizer<double>> decom(dim, s, R, dw);
-        decom.Init(&V, W);
-        decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
-      } else if (pp == 1) {
-        CPD<double, CPMSDTOptimizer<double>> decom(dim, s, R, dw);
-        decom.Init(&V, W);
-        decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
-      } else if (pp == 2) {
-        CPD<double, CPSimpleOptimizer<double>> decom(dim, s, R, dw);
-        decom.Init(&V, W);
-        decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+    if (method == 0) {
+      if (dw.rank == 0) {
+        cout << "============CPSimpleOptimizer=============" << endl;
       }
+      CPD<double, CPSimpleOptimizer<double>> decom(dim, lens, R, dw);
+      decom.Init(&V, W);
+      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+    } else if (method == 1) {
+      if (dw.rank == 0) {
+        cout << "============CPLocalOptimizer=============" << endl;
+      }
+      CPD<double, CPLocalOptimizer<double>> decom(dim, lens, R, dw);
+      decom.Init(&V, W);
+      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+    } else if (method == 2) {
+      if (dw.rank == 0) {
+        cout << "============CPDTOptimizer=============" << endl;
+      }
+      CPD<double, CPDTOptimizer<double>> decom(dim, lens, R, dw);
+      decom.Init(&V, W);
+      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+    } else if (method == 3) {
+      if (dw.rank == 0) {
+        cout << "============CPDTLocalOptimizer=============" << endl;
+      }
+      CPD<double, CPDTLocalOptimizer<double>> decom(dim, lens, R, dw);
+      decom.Init(&V, W);
+      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+    } else if (method == 4) {
+      if (dw.rank == 0) {
+        cout << "============CPPPOptimizer=============" << endl;
+      }
+      CPD<double, CPPPOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol);
+      decom.Init(&V, W);
+      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+    } else if (method == 5) {
+      if (dw.rank == 0) {
+        cout << "============CPPPLocalOptimizer=============" << endl;
+      }
+      CPD<double, CPPPLocalOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol);
+      decom.Init(&V, W);
+      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
     }
 
-    tALS.end();
     if (dw.rank == 0) {
       printf("experiment took %lf seconds\n", MPI_Wtime() - start_time);
     }
@@ -406,5 +402,3 @@ int main(int argc, char **argv) {
   MPI_Finalize();
   return 0;
 }
-
-#endif

@@ -730,6 +730,19 @@ void cholesky_solve(Matrix<> &M, Matrix<> &W, Matrix<> &S) {
   tCholesky_solve.stop();
 }
 
+void spd_solve(Matrix<> &M, Matrix<> &W, Matrix<> &S) {
+  Timer tspd_solve("SPD_solve");
+  tspd_solve.start();
+
+  Matrix<> W_trans = Matrix<>(W.ncol, W.nrow);
+  Matrix<> M_trans = Matrix<>(M.ncol, M.nrow);
+  M_trans["ij"] = M["ji"];
+  M_trans.solve_spd(S, W_trans);
+  W["ij"] = W_trans["ji"];
+
+  tspd_solve.stop();
+}
+
 void SVD_solve_mod(Matrix<> &M, Matrix<> &W, Matrix<> &W_init, Matrix<> &dW,
                    Matrix<> &S, double ratio_step) {
   Timer tSVD_solve_mod("SVD_solve");

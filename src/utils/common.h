@@ -53,6 +53,8 @@ void SVD_solve(Matrix<> &M, Matrix<> &W, Matrix<> &S);
 
 void cholesky_solve(Matrix<> &M, Matrix<> &W, Matrix<> &S);
 
+void spd_solve(Matrix<> &M, Matrix<> &W, Matrix<> &S);
+
 void SVD_solve_mod(Matrix<> &M, Matrix<> &W, Matrix<> &W_init, Matrix<> &dW,
                    Matrix<> &S, double ratio_step);
 

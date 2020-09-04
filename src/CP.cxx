@@ -100,6 +100,9 @@ template <typename dtype, class Optimizer>
 bool CPD<dtype, Optimizer>::als(double tol, double timelimit, int maxsweep,
                                 int resprint, ofstream &Plot_File, bool bench) {
 
+  Timer_epoch tALS("ALS");
+  tALS.begin();
+
   cout.precision(13);
 
   World *dw = this->world;
@@ -155,8 +158,11 @@ bool CPD<dtype, Optimizer>::als(double tol, double timelimit, int maxsweep,
         break;
     }
 
+    Timer_epoch tals_step("als-step");
+    tals_step.begin();
     sweeps += this->optimizer->step();
     iters += 1;
+    tals_step.end();
 
     // Normalize(this->W, this->order, *dw);
     // print .
@@ -170,6 +176,9 @@ bool CPD<dtype, Optimizer>::als(double tol, double timelimit, int maxsweep,
   if (bench == false) {
     Plot_File.close();
   }
+
+  tALS.end();
+
   if (sweeps == maxsweep + 1)
     return false;
   else

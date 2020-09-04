@@ -45,6 +45,9 @@ template <typename dtype> CPDTOptimizer<dtype>::~CPDTOptimizer() {
 template <typename dtype>
 void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
                                            Matrix<> **mat, Tensor<> *T) {
+  Timer t_mttkrp_map_init("mttkrp_map_init");
+  t_mttkrp_map_init.start();
+
   int order = this->order;
 
   // build seq_map_init
@@ -76,11 +79,16 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
 
   mttkrp_map[seq_tree_top][seq_map_init] =
       (*T)[seq_V] * mat[left_index]->operator[](seq_matrix);
+
+  t_mttkrp_map_init.stop();
 }
 
 template <typename dtype>
 void CPDTOptimizer<dtype>::mttkrp_map_DT(string index, World *dw,
                                          Matrix<> **mat, Tensor<> *T) {
+  Timer t_mttkrp_map_DT("mttkrp_map_DT");
+  t_mttkrp_map_DT.start();
+
   char const *index_char = index.c_str();
 
   char const *parent_index = dt->parent[index].c_str();
@@ -102,6 +110,8 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index, World *dw,
 
   mttkrp_map[index][index_char] = mttkrp_map[parent_index][parent_index] *
                                   mat[indexes[W_index]]->operator[](mat_index);
+
+  t_mttkrp_map_DT.stop();
 }
 
 template <typename dtype> double CPDTOptimizer<dtype>::step() {

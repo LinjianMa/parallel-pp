@@ -81,7 +81,7 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step() {
     Matrix<> M_reshape =
         Matrix<>(this->W[ii]->nrow, this->W[ii]->ncol, *(this->world));
     M_reshape["ij"] = local_mttkrp->mttkrp[ii]->operator[]("ij");
-    cholesky_solve(M_reshape, *this->W[ii], this->S);
+    spd_solve(M_reshape, *this->W[ii], this->S);
 
     local_mttkrp->distribute_W(ii, local_mttkrp->W, local_mttkrp->W_local);
   }
