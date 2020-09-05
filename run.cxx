@@ -15,6 +15,7 @@ int main(int argc, char **argv) {
 
   char *tensor; // which tensor    p / p2 / c / r / r2 / o /
   int method;   // 0 simple 1 Local-simple 2 DT 3 Local-DT 4 PP 5 Local-PP
+  bool use_msdt = false;
   double update_percentage_pp; // pp update ratio. For each sweep only update
                                // update_percentage_pp*N matrices.
   /*
@@ -38,7 +39,7 @@ int main(int argc, char **argv) {
   double col_max;         // collinearity max
   double ratio_noise;     // collinearity ratio of noise
   double timelimit = 5e7; // time limits
-  int maxiter = 5e7;      // maximum iterations
+  int maxsweep = 5e7;      // maximum sweeps
   int resprint = 1;
   char *tensorfile;
 
@@ -60,6 +61,13 @@ int main(int argc, char **argv) {
   } else {
     method = 0;
   }
+  if (getCmdOption(input_str, input_str + in_num, "-msdt")) {
+    int msdt = atoi(getCmdOption(input_str, input_str + in_num, "-msdt"));
+    if (msdt > 0)
+      use_msdt = true;
+  } else {
+    use_msdt = false;
+  }
   if (getCmdOption(input_str, input_str + in_num, "-update_percentage_pp")) {
     update_percentage_pp = atof(
         getCmdOption(input_str, input_str + in_num, "-update_percentage_pp"));
@@ -75,12 +83,12 @@ int main(int argc, char **argv) {
   } else {
     dim = 3;
   }
-  if (getCmdOption(input_str, input_str + in_num, "-maxiter")) {
-    maxiter = atoi(getCmdOption(input_str, input_str + in_num, "-maxiter"));
-    if (maxiter < 0)
-      maxiter = 5e3;
+  if (getCmdOption(input_str, input_str + in_num, "-maxsweep")) {
+    maxsweep = atoi(getCmdOption(input_str, input_str + in_num, "-maxsweep"));
+    if (maxsweep < 0)
+      maxsweep = 5e3;
   } else {
-    maxiter = 5e3;
+    maxsweep = 5e3;
   }
   if (getCmdOption(input_str, input_str + in_num, "-timelimit")) {
     timelimit = atof(getCmdOption(input_str, input_str + in_num, "-timelimit"));
@@ -183,14 +191,14 @@ int main(int argc, char **argv) {
 
     if (dw.rank == 0) {
       cout << "  tensor=  " << tensor << "  method=  " << method << endl;
-      cout << "  dim=  " << dim << "  size=  " << s << "  rank=  " << R << endl;
+      cout << "  dim=  " << dim << "  size=  " << s << "  rank=  " << R << "  use_msdt=  " << use_msdt << endl;
       cout << "  issparse=  " << issparse << "  tolerance=  " << tol
            << "  restarttol=  " << pp_res_tol << endl;
       cout << "  lambda=  " << lambda_ << "  magnitude=  " << magni
            << "  filename=  " << filename << endl;
       cout << "  col_min=  " << col_min << "  col_max=  " << col_max
            << "  rationoise  " << ratio_noise << endl;
-      cout << "  timelimit=  " << timelimit << "  maxiter=  " << maxiter
+      cout << "  timelimit=  " << timelimit << "  maxsweep=  " << maxsweep
            << "  resprint=  " << resprint << endl;
       cout << "  tensorfile=  " << tensorfile
            << "  update_percentage_pp=  " << update_percentage_pp << endl;
@@ -352,42 +360,42 @@ int main(int argc, char **argv) {
       }
       CPD<double, CPSimpleOptimizer<double>> decom(dim, lens, R, dw);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 1) {
       if (dw.rank == 0) {
         cout << "============CPLocalOptimizer=============" << endl;
       }
       CPD<double, CPLocalOptimizer<double>> decom(dim, lens, R, dw);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 2) {
       if (dw.rank == 0) {
         cout << "============CPDTOptimizer=============" << endl;
       }
-      CPD<double, CPDTOptimizer<double>> decom(dim, lens, R, dw);
+      CPD<double, CPDTOptimizer<double>> decom(dim, lens, R, dw, use_msdt);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 3) {
       if (dw.rank == 0) {
         cout << "============CPDTLocalOptimizer=============" << endl;
       }
       CPD<double, CPDTLocalOptimizer<double>> decom(dim, lens, R, dw);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 4) {
       if (dw.rank == 0) {
         cout << "============CPPPOptimizer=============" << endl;
       }
       CPD<double, CPPPOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 5) {
       if (dw.rank == 0) {
         cout << "============CPPPLocalOptimizer=============" << endl;
       }
       CPD<double, CPPPLocalOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxiter, resprint, Plot_File);
+      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
     }
 
     if (dw.rank == 0) {

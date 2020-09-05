@@ -9,7 +9,7 @@ CPPPLocalOptimizer<dtype>::CPPPLocalOptimizer(int order, int r, World &dw,
                                               double tol_restart_dt)
     : CPPPOptimizer<dtype>(order, r, dw, tol_restart_dt),
       CPDTLocalOptimizer<dtype>(order, r, dw), CPDTOptimizer<dtype>(order, r,
-                                                                    dw) {
+                                                                    dw, false) {
   this->dW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
 }
 

@@ -10,11 +10,17 @@ using namespace CTF;
 template <typename dtype> class CPDTOptimizer : public CPOptimizer<dtype> {
 
 public:
-  CPDTOptimizer(int order, int r, World &dw);
+  CPDTOptimizer(int order, int r, World &dw, bool use_msdt);
 
   ~CPDTOptimizer();
 
   double step();
+
+  double step_dt();
+
+  double step_msdt();
+
+  void solve_one_mode(int i);
 
   /**
    * \brief First level MTTKRP contractions.
@@ -34,9 +40,12 @@ public:
   // sub of seq_V
   char seq_tree_top[100];
 
-  // maps
+  // The map store all the intermeidates in one MSDT subtree.
   map<string, Tensor<dtype> *> mttkrp_map;
 
+  bool use_msdt = false;
+
+  /*Specific parameters for DT*/
   // indices that update in one step
   bool first_subtree;
   // The indexes to calculate MTTKRP wrt

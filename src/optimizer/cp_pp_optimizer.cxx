@@ -7,7 +7,7 @@ using namespace CTF;
 template <typename dtype>
 CPPPOptimizer<dtype>::CPPPOptimizer(int order, int r, World &dw,
                                     double tol_restart_dt)
-    : CPDTOptimizer<dtype>(order, r, dw) {
+    : CPDTOptimizer<dtype>(order, r, dw, false) {
   this->tol_restart_dt = tol_restart_dt;
   this->dW = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
 }
@@ -253,6 +253,7 @@ template <typename dtype>
 void CPPPOptimizer<dtype>::initialize_tree(World *dw, Tensor<> *T,
                                            Matrix<> **mat, Matrix<> **deltaW) {
   for (auto const& x : this->name_tensor_map) {
+    // Note that "0" is the input tensor, and we cannot delete it.
     if (x.first != "0") {
       delete x.second;
     }

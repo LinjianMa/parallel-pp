@@ -54,6 +54,25 @@ CPD<dtype, Optimizer>::CPD(int order, int *size_, int r, World &dw,
 }
 
 template <typename dtype, class Optimizer>
+CPD<dtype, Optimizer>::CPD(int order, int *size_, int r, World &dw,
+                           bool use_msdt)
+    : Decomposition<dtype>(order, size_, r, dw) {
+
+  for (int i = 1; i < order; i++) {
+    assert(this->size[i] == size_[i]);
+    assert(this->rank[i] == r);
+  }
+
+  optimizer = new Optimizer(order, r, dw, use_msdt);
+
+  // make the char seq_V
+  seq_V[order] = '\0';
+  for (int j = 0; j < order; j++) {
+    seq_V[j] = 'a' + j;
+  }
+}
+
+template <typename dtype, class Optimizer>
 void CPD<dtype, Optimizer>::Init(Tensor<dtype> *input, Matrix<dtype> **mat,
                                  double lambda) {
 
@@ -117,7 +136,7 @@ bool CPD<dtype, Optimizer>::als(double tol, double timelimit, int maxsweep,
                 << "\n"; // Headings for file
   }
 
-  while (sweeps < maxsweep) {
+  while (fabs(sweeps - maxsweep) > 1e-5) {
     // print the gradient norm
     if (sweeps - int(sweeps) == 0 &&
         (int(sweeps) % resprint == 0 || sweeps == 0)) {

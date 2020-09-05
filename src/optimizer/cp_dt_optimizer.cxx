@@ -6,9 +6,10 @@
 using namespace CTF;
 
 template <typename dtype>
-CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw)
+CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw, bool use_msdt)
     : CPOptimizer<dtype>(order, r, dw) {
 
+  this->use_msdt = use_msdt;
   dt = new DimensionTree(order);
 
   // make the char seq_V
@@ -120,10 +121,27 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index, World *dw,
   t_mttkrp_map_DT.stop();
 }
 
-template <typename dtype> double CPDTOptimizer<dtype>::step() {
+template <typename dtype> void CPDTOptimizer<dtype>::solve_one_mode(int i) {
+  vector<int> mat_index = {i};
+  int ii = indexes[i];
 
-  World *dw = this->world;
-  int order = this->order;
+  string mat_seq;
+  vec2str(mat_index, mat_seq);
+
+  if (mttkrp_map.find(mat_seq) == mttkrp_map.end()) {
+    mttkrp_map_DT(mat_seq, this->world, this->W, this->V);
+  }
+  Matrix<dtype> M = * mttkrp_map[mat_seq];
+
+  // calculating S
+  CPOptimizer<dtype>::update_S(ii);
+  // calculate gradient
+  this->grad_W[ii]["ij"] = -M["ij"] + this->W[ii]->operator[]("ik") * this->S["kj"];
+
+  spd_solve(M, *this->W[ii], this->S);
+}
+
+template <typename dtype> double CPDTOptimizer<dtype>::step_dt() {
 
   if (first_subtree) {
     indexes = indexes1;
@@ -143,32 +161,42 @@ template <typename dtype> double CPDTOptimizer<dtype>::step() {
 
   // iteration on W[i]
   for (int i = 0; i < indexes.size(); i++) {
-
     if (!first_subtree && indexes[i] != special_index)
       continue;
-    /*  construct Matrix M
-     *   M["dk"] = V["abcd"]*W1["ak"]*W2["bk"]*W3["ck"]
-     */
-    vector<int> mat_index = {i};
-
-    string mat_seq;
-    vec2str(mat_index, mat_seq);
-
-    if (mttkrp_map.find(mat_seq) == mttkrp_map.end()) {
-      mttkrp_map_DT(mat_seq, this->world, this->W, this->V);
-    }
-    Matrix<dtype> M = * mttkrp_map[mat_seq];
-
-    // calculating S
-    CPOptimizer<dtype>::update_S(indexes[i]);
-    // calculate gradient
-    this->grad_W[indexes[i]]["ij"] =
-        -M["ij"] + this->W[indexes[i]]->operator[]("ik") * this->S["kj"];
-
-    cholesky_solve(M, *this->W[indexes[i]], this->S);
+    solve_one_mode(i);
   }
 
   first_subtree = !first_subtree;
 
   return 0.5;
+}
+
+template <typename dtype> double CPDTOptimizer<dtype>::step_msdt() {
+
+  // clear the Hash Table
+  for (auto const& x : this->mttkrp_map) {
+    delete x.second;
+  }
+  mttkrp_map.clear();
+
+  // reinitialize
+  dt->update_indexes(indexes, left_index);
+  mttkrp_map_init(left_index, this->world, this->W, this->V);
+
+  // iteration on W[i]
+  for (int i = 0; i < indexes.size(); i++) {
+    solve_one_mode(i);
+  }
+
+  left_index = (left_index + this->order - 1) % this->order;
+
+  return 1. * (this->order - 1) / this->order;
+}
+
+template <typename dtype> double CPDTOptimizer<dtype>::step() {
+  if (this->use_msdt == true) {
+    return step_msdt();
+  } else {
+    return step_dt();
+  }
 }

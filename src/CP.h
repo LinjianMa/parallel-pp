@@ -22,6 +22,8 @@ public:
 
   CPD(int order, int *size, int r, World &dw, double tol_restart_dt);
 
+  CPD(int order, int *size, int r, World &dw, bool use_msdt);
+
   void Init(Tensor<dtype> *input, Matrix<dtype> **mat, double lambda = 0.);
 
   ~CPD();

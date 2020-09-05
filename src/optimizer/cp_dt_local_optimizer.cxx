@@ -7,7 +7,7 @@ using namespace CTF;
 
 template <typename dtype>
 CPDTLocalOptimizer<dtype>::CPDTLocalOptimizer(int order, int r, World &dw)
-    : CPDTOptimizer<dtype>(order, r, dw) {
+    : CPDTOptimizer<dtype>(order, r, dw, false) {
 
   local_mttkrp = new LocalMTTKRP<dtype>(order, r, dw);
 }
@@ -55,8 +55,8 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step() {
 
     int ii = this->indexes[i];
 
-    if (!this->first_subtree && i > this->special_index)
-      break;
+    if (!this->first_subtree && ii != this->special_index)
+      continue;
     /*  construct Matrix M
      *   M["dk"] = V["abcd"]*W1["ak"]*W2["bk"]*W3["ck"]
      */
