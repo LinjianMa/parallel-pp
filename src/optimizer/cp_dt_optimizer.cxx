@@ -31,9 +31,9 @@ CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw)
 
   left_index = order - 1;
   left_index1 = left_index;
-  left_index2 = (left_index + order - 1) % order;
+  left_index2 = 0; // (left_index + order - 1) % order;
   dt->update_indexes(indexes2, left_index2);
-  special_index = 0;
+  special_index = order - 1;
 
   first_subtree = true;
 }
@@ -82,7 +82,7 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
 
   Timer t_mttkrp_map_first_intermediate("mttkrp_map_first_intermediate");
   t_mttkrp_map_first_intermediate.start();
-  mttkrp_map[seq_tree_top]->operator[](seq_map_init) =
+  mttkrp_map[seq_tree_top]->operator[](seq_map_init) +=
       (*T)[seq_V] * mat[left_index]->operator[](seq_matrix);
   t_mttkrp_map_first_intermediate.stop();
 
@@ -114,7 +114,7 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index, World *dw,
   }
   mttkrp_map[index] = new Tensor<dtype>(strlen(index_char), lens, *dw);
 
-  mttkrp_map[index]->operator[](index_char) = mttkrp_map[parent_index]->operator[](parent_index) *
+  mttkrp_map[index]->operator[](index_char) += mttkrp_map[parent_index]->operator[](parent_index) *
                                   mat[indexes[W_index]]->operator[](mat_index);
 
   t_mttkrp_map_DT.stop();
@@ -144,8 +144,8 @@ template <typename dtype> double CPDTOptimizer<dtype>::step() {
   // iteration on W[i]
   for (int i = 0; i < indexes.size(); i++) {
 
-    if (!first_subtree && i > special_index)
-      break;
+    if (!first_subtree && indexes[i] != special_index)
+      continue;
     /*  construct Matrix M
      *   M["dk"] = V["abcd"]*W1["ak"]*W2["bk"]*W3["ck"]
      */
