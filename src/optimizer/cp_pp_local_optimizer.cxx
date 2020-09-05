@@ -8,8 +8,8 @@ template <typename dtype>
 CPPPLocalOptimizer<dtype>::CPPPLocalOptimizer(int order, int r, World &dw,
                                               double tol_restart_dt)
     : CPPPOptimizer<dtype>(order, r, dw, tol_restart_dt),
-      CPDTLocalOptimizer<dtype>(order, r, dw, false), CPDTOptimizer<dtype>(order, r,
-                                                                    dw, false) {
+      CPDTLocalOptimizer<dtype>(order, r, dw, false), CPDTOptimizer<dtype>(
+                                                          order, r, dw, false) {
   this->dW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
 }
 

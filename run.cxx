@@ -39,7 +39,7 @@ int main(int argc, char **argv) {
   double col_max;         // collinearity max
   double ratio_noise;     // collinearity ratio of noise
   double timelimit = 5e7; // time limits
-  int maxsweep = 5e7;      // maximum sweeps
+  int maxsweep = 5e7;     // maximum sweeps
   int resprint = 1;
   char *tensorfile;
 
@@ -191,7 +191,8 @@ int main(int argc, char **argv) {
 
     if (dw.rank == 0) {
       cout << "  tensor=  " << tensor << "  method=  " << method << endl;
-      cout << "  dim=  " << dim << "  size=  " << s << "  rank=  " << R << "  use_msdt=  " << use_msdt << endl;
+      cout << "  dim=  " << dim << "  size=  " << s << "  rank=  " << R
+           << "  use_msdt=  " << use_msdt << endl;
       cout << "  issparse=  " << issparse << "  tolerance=  " << tol
            << "  restarttol=  " << pp_res_tol << endl;
       cout << "  lambda=  " << lambda_ << "  magnitude=  " << magni
@@ -393,7 +394,8 @@ int main(int argc, char **argv) {
       if (dw.rank == 0) {
         cout << "============CPPPLocalOptimizer=============" << endl;
       }
-      CPD<double, CPPPLocalOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol);
+      CPD<double, CPPPLocalOptimizer<double>> decom(dim, lens, R, dw,
+                                                    pp_res_tol);
       decom.Init(&V, W);
       decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
     }

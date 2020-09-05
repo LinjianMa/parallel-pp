@@ -76,7 +76,8 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
     else
       lens[ii] = T->lens[int(seq_map_init[ii] - 'a')];
   }
-  Timer t_mttkrp_map_first_intermediate_init("mttkrp_map_first_intermediate_init");
+  Timer t_mttkrp_map_first_intermediate_init(
+      "mttkrp_map_first_intermediate_init");
   t_mttkrp_map_first_intermediate_init.start();
   mttkrp_map[seq_tree_top] = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
   t_mttkrp_map_first_intermediate_init.stop();
@@ -115,8 +116,9 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index, World *dw,
   }
   mttkrp_map[index] = new Tensor<dtype>(strlen(index_char), lens, *dw);
 
-  mttkrp_map[index]->operator[](index_char) += mttkrp_map[parent_index]->operator[](parent_index) *
-                                  mat[indexes[W_index]]->operator[](mat_index);
+  mttkrp_map[index]->operator[](index_char) +=
+      mttkrp_map[parent_index]->operator[](parent_index) *
+      mat[indexes[W_index]]->operator[](mat_index);
 
   t_mttkrp_map_DT.stop();
 }
@@ -131,12 +133,13 @@ template <typename dtype> void CPDTOptimizer<dtype>::solve_one_mode(int i) {
   if (mttkrp_map.find(mat_seq) == mttkrp_map.end()) {
     mttkrp_map_DT(mat_seq, this->world, this->W, this->V);
   }
-  Matrix<dtype> M = * mttkrp_map[mat_seq];
+  Matrix<dtype> M = *mttkrp_map[mat_seq];
 
   // calculating S
   CPOptimizer<dtype>::update_S(ii);
   // calculate gradient
-  this->grad_W[ii]["ij"] = -M["ij"] + this->W[ii]->operator[]("ik") * this->S["kj"];
+  this->grad_W[ii]["ij"] =
+      -M["ij"] + this->W[ii]->operator[]("ik") * this->S["kj"];
 
   spd_solve(M, *this->W[ii], this->S);
 }
@@ -151,7 +154,7 @@ template <typename dtype> double CPDTOptimizer<dtype>::step_dt() {
     left_index = left_index2;
   }
   // clear the Hash Table
-  for (auto const& x : this->mttkrp_map) {
+  for (auto const &x : this->mttkrp_map) {
     delete x.second;
   }
   mttkrp_map.clear();
@@ -174,7 +177,7 @@ template <typename dtype> double CPDTOptimizer<dtype>::step_dt() {
 template <typename dtype> double CPDTOptimizer<dtype>::step_msdt() {
 
   // clear the Hash Table
-  for (auto const& x : this->mttkrp_map) {
+  for (auto const &x : this->mttkrp_map) {
     delete x.second;
   }
   mttkrp_map.clear();

@@ -22,7 +22,8 @@ void TEST_CPD(World &dw) {
   CPD<double, CPDTOptimizer<double>> decom_dt(3, lens, 5, dw, false);
   CPD<double, CPDTOptimizer<double>> decom_msdt(3, lens, 5, dw, true);
   CPD<double, CPDTLocalOptimizer<double>> decom_dt_local(3, lens, 5, dw, false);
-  CPD<double, CPDTLocalOptimizer<double>> decom_msdt_local(3, lens, 5, dw, true);
+  CPD<double, CPDTLocalOptimizer<double>> decom_msdt_local(3, lens, 5, dw,
+                                                           true);
   CPD<double, CPPPOptimizer<double>> decom_pp(3, lens, 5, dw, 1e-5);
   CPD<double, CPPPLocalOptimizer<double>> decom_pp_local(3, lens, 5, dw, 1e-5);
 

@@ -6,7 +6,8 @@
 using namespace CTF;
 
 template <typename dtype>
-CPDTLocalOptimizer<dtype>::CPDTLocalOptimizer(int order, int r, World &dw, bool use_msdt)
+CPDTLocalOptimizer<dtype>::CPDTLocalOptimizer(int order, int r, World &dw,
+                                              bool use_msdt)
     : CPDTOptimizer<dtype>(order, r, dw, use_msdt) {
 
   local_mttkrp = new LocalMTTKRP<dtype>(order, r, dw);
@@ -31,7 +32,8 @@ void CPDTLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
   local_mttkrp->setup_V_local_data();
 }
 
-template <typename dtype> void CPDTLocalOptimizer<dtype>::solve_one_mode(int i) {
+template <typename dtype>
+void CPDTLocalOptimizer<dtype>::solve_one_mode(int i) {
   int ii = this->indexes[i];
   vector<int> mat_index = {i};
 
@@ -72,7 +74,7 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_dt() {
     this->left_index = this->left_index2;
   }
   // clear the Hash Table
-  for (auto const& x : this->mttkrp_map) {
+  for (auto const &x : this->mttkrp_map) {
     delete x.second;
   }
   this->mttkrp_map.clear();
@@ -95,7 +97,7 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_dt() {
 template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
 
   // clear the Hash Table
-  for (auto const& x : this->mttkrp_map) {
+  for (auto const &x : this->mttkrp_map) {
     delete x.second;
   }
   this->mttkrp_map.clear();
