@@ -379,7 +379,7 @@ int main(int argc, char **argv) {
       if (dw.rank == 0) {
         cout << "============CPDTLocalOptimizer=============" << endl;
       }
-      CPD<double, CPDTLocalOptimizer<double>> decom(dim, lens, R, dw);
+      CPD<double, CPDTLocalOptimizer<double>> decom(dim, lens, R, dw, use_msdt);
       decom.Init(&V, W);
       decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 4) {

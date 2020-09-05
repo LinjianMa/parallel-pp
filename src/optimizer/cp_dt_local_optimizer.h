@@ -12,7 +12,7 @@ template <typename dtype>
 class CPDTLocalOptimizer : virtual public CPDTOptimizer<dtype> {
 
 public:
-  CPDTLocalOptimizer(int order, int r, World &dw);
+  CPDTLocalOptimizer(int order, int r, World &dw, bool use_msdt);
 
   ~CPDTLocalOptimizer();
 
@@ -20,6 +20,12 @@ public:
                  double lambda);
 
   double step();
+
+  double step_dt();
+
+  double step_msdt();
+
+  void solve_one_mode(int i);
 
   LocalMTTKRP<dtype> *local_mttkrp = NULL;
 };
