@@ -8,13 +8,16 @@ UDIR=$(SDIR)/utils
 
 FCXX=$(CXX) $(CXXFLAGS)
 
-all: test run
+all: test run transpose
 
 run: run.cxx $(ODIR)/common.o $(ODIR)/dimension_tree.o Makefile config.mk
 	$(FCXX) $< $(ODIR)/common.o $(ODIR)/dimension_tree.o -o $@ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
 test: $(TDIR)/test_decomposition.cxx $(ODIR)/common.o $(ODIR)/dimension_tree.o Makefile config.mk
 	$(FCXX) $< $(ODIR)/common.o $(ODIR)/dimension_tree.o -o $@ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
+
+transpose: $(TDIR)/test_transpose.cxx Makefile config.mk
+	$(FCXX) $< -o $@ $(INCLUDE_PATH) $(LIB_PATH) $(LIBS)
 
 $(ODIR)/common.o: $(UDIR)/common.cxx $(UDIR)/common.h config.mk
 	$(FCXX) -c $< -o $@ $(INCLUDE_PATH)
@@ -24,7 +27,7 @@ $(ODIR)/dimension_tree.o: $(UDIR)/dimension_tree.cxx $(UDIR)/dimension_tree.h co
 
 .PHONY: clean
 clean:
-	rm -f $(ODIR)/*.o test run
+	rm -f $(ODIR)/*.o test run transpose
 
 .PHONY: format
 format:

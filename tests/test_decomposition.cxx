@@ -265,11 +265,7 @@ void TEST_PP_local(World &dw) {
 }
 
 int main(int argc, char **argv) {
-  int logn;
-  int64_t n;
-
   MPI_Init(&argc, &argv);
-
   World dw(argc, argv);
 
   TEST_local_mttkrp(dw);
