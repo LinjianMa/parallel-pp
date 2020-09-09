@@ -32,6 +32,72 @@ template <typename dtype> void LocalMTTKRP<dtype>::setup_V_local_data() {
   this->V_local->data = this->V->data;
 }
 
+template <typename dtype> void LocalMTTKRP<dtype>::get_V_local_transposes() {
+  char seq_V[order + 1];
+  seq_V[order] = '\0';
+  for (int j = 0; j < order; j++) {
+    seq_V[j] = 'a' + j;
+  }
+
+  int num_transposes = 0;
+  int odd_mode = order % 2;
+  if (odd_mode == 1){
+    num_transposes = int((order - 1) / 2);
+  } else {
+    num_transposes = int(order / 2);
+  }
+
+  trans_V_local_map[0] = this->V_local;
+  trans_V_local_map[order - 1] = this->V_local;
+  trans_V_str_map[0] = string(seq_V);
+  trans_V_str_map[order - 1] = string(seq_V);
+
+  for (int partial_trans=1; partial_trans<num_transposes; partial_trans++) {
+    char seq_trans[order + 1];
+    int lens_out[order];
+    seq_trans[order] = '\0';
+    int j = 0;
+    for (int i = 2 * partial_trans; i < order; i++) {
+      seq_trans[j] = 'a' + i;
+      lens_out[j] = this->V_local->lens[i];
+      j++;
+    }
+    for (int i = 0; i < 2 * partial_trans; i++) {
+      seq_trans[j] = 'a' + i;
+      lens_out[j] = this->V_local->lens[i];
+      j++;
+    }
+    Tensor<> *out = new Tensor<>(order, lens_out, *this->sworld);
+    out->operator[](seq_trans) = this->V_local->operator[](seq_V);
+
+    trans_V_local_map[2 * partial_trans] = out;
+    trans_V_local_map[2 * partial_trans - 1] = out;
+    trans_V_str_map[2 * partial_trans] = string(seq_trans);
+    trans_V_str_map[2 * partial_trans - 1] = string(seq_trans);
+  }
+  if (odd_mode == 1) {
+    char seq_trans[order + 1];
+    int lens_out[order];
+    seq_trans[order] = '\0';
+    int j = 0;
+    for (int i = order - 2; i < order; i++) {
+      seq_trans[j] = 'a' + i;
+      lens_out[j] = this->V_local->lens[i];
+      j++;
+    }
+    for (int i = 0; i < order - 2; i++) {
+      seq_trans[j] = 'a' + i;
+      lens_out[j] = this->V_local->lens[i];
+      j++;
+    }
+    Tensor<> *out = new Tensor<>(order, lens_out, *this->sworld);
+    out->operator[](seq_trans) = this->V_local->operator[](seq_V);
+
+    trans_V_local_map[order - 2] = out;
+    trans_V_str_map[order - 2] = string(seq_trans);
+  }
+}
+
 template <typename dtype> void LocalMTTKRP<dtype>::mttkrp_calc(int mode) {
   char seq_V[100];
   // make the char seq_V

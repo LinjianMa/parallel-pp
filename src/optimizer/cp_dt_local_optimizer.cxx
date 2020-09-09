@@ -30,6 +30,9 @@ void CPDTLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
   }
   local_mttkrp->construct_mttkrp_locals();
   local_mttkrp->setup_V_local_data();
+  if (this->use_msdt == true) {
+    local_mttkrp->get_V_local_transposes();
+  }
 }
 
 template <typename dtype>
@@ -81,7 +84,7 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_dt() {
   // reinitialize
   CPDTOptimizer<dtype>::mttkrp_map_init(this->left_index, local_mttkrp->sworld,
                                         local_mttkrp->W_local,
-                                        local_mttkrp->V_local);
+                                        local_mttkrp->V_local, this->seq_V, local_mttkrp->V_local->lens);
 
   // iteration on W[i]
   for (int i = 0; i < this->indexes.size(); i++) {
@@ -106,7 +109,8 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
   this->dt->update_indexes(this->indexes, this->left_index);
   CPDTOptimizer<dtype>::mttkrp_map_init(this->left_index, local_mttkrp->sworld,
                                         local_mttkrp->W_local,
-                                        local_mttkrp->V_local);
+                                        local_mttkrp->trans_V_local_map[this->left_index], local_mttkrp->trans_V_str_map[this->left_index].c_str(),
+                                        local_mttkrp->V_local->lens);
 
   // iteration on W[i]
   for (int i = 0; i < this->indexes.size(); i++) {

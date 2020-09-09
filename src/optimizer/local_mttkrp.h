@@ -16,6 +16,8 @@ public:
 
   void setup_V_local_data();
 
+  void get_V_local_transposes();
+
   void construct_mttkrp_locals();
 
   void mttkrp_calc(int mode);
@@ -53,6 +55,10 @@ public:
   Partition par;
 
   char *par_idx = NULL;
+
+  // The map storing the transposes of the input tensor (used in MSDT).
+  map<int, Tensor<dtype> *> trans_V_local_map;
+  map<int, string> trans_V_str_map;
 };
 
 #include "local_mttkrp.cxx"
