@@ -36,7 +36,6 @@ void TEST_transpose(World &dw) {
   t_mttkrp_ttv.begin();
   V_out["abr"] += V2["abcr"] * W["cr"];
   t_mttkrp_ttv.end();
-  
 }
 
 int main(int argc, char **argv) {

@@ -25,7 +25,8 @@ public:
   /**
    * \brief First level MTTKRP contractions.
    */
-  void mttkrp_map_init(int left_index, World *dw, Matrix<> **mat, Tensor<> *T, const char* seq_T, int64_t * init_tensor_lens);
+  void mttkrp_map_init(int left_index, World *dw, Matrix<> **mat, Tensor<> *T,
+                       const char *seq_T, int64_t *init_tensor_lens);
 
   /**
    * \brief MTTKRP contractions except the first level.

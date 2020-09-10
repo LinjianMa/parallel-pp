@@ -45,7 +45,9 @@ template <typename dtype> CPDTOptimizer<dtype>::~CPDTOptimizer() {
 
 template <typename dtype>
 void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
-                                           Matrix<> **mat, Tensor<> *T, const char* seq_T, int64_t * init_tensor_lens) {
+                                           Matrix<> **mat, Tensor<> *T,
+                                           const char *seq_T,
+                                           int64_t *init_tensor_lens) {
   Timer t_mttkrp_map_init("mttkrp_map_init");
   t_mttkrp_map_init.start();
 
@@ -160,7 +162,8 @@ template <typename dtype> double CPDTOptimizer<dtype>::step_dt() {
   mttkrp_map.clear();
 
   // reinitialize
-  mttkrp_map_init(left_index, this->world, this->W, this->V, this->seq_V, this->V->lens);
+  mttkrp_map_init(left_index, this->world, this->W, this->V, this->seq_V,
+                  this->V->lens);
 
   // iteration on W[i]
   for (int i = 0; i < indexes.size(); i++) {
@@ -184,7 +187,8 @@ template <typename dtype> double CPDTOptimizer<dtype>::step_msdt() {
 
   // reinitialize
   dt->update_indexes(indexes, left_index);
-  mttkrp_map_init(left_index, this->world, this->W, this->V, this->seq_V, this->V->lens);
+  mttkrp_map_init(left_index, this->world, this->W, this->V, this->seq_V,
+                  this->V->lens);
 
   // iteration on W[i]
   for (int i = 0; i < indexes.size(); i++) {

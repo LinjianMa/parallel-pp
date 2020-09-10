@@ -14,7 +14,7 @@ CPPPLocalOptimizer<dtype>::CPPPLocalOptimizer(int order, int r, World &dw,
 }
 
 template <typename dtype> CPPPLocalOptimizer<dtype>::~CPPPLocalOptimizer() {
-  for (int i = 0; i<this->order; i++){
+  for (int i = 0; i < this->order; i++) {
     delete this->dW_local[i];
   }
   free(this->dW_local);
@@ -31,8 +31,10 @@ void CPPPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
     this->dW[i]->operator[]("ij") = 0.;
   }
   for (int i = 0; i < this->order; i++) {
-    int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->local_mttkrp->phys_phase[i]);
-    this->dW_local[i] = new Matrix<dtype>(pad_local_col, this->rank, *this->local_mttkrp->sworld);
+    int64_t pad_local_col =
+        int(this->V->pad_edge_len[i] / this->local_mttkrp->phys_phase[i]);
+    this->dW_local[i] = new Matrix<dtype>(pad_local_col, this->rank,
+                                          *this->local_mttkrp->sworld);
   }
   for (int i = 0; i < this->order; i++) {
     this->local_mttkrp->distribute_W(i, this->dW, this->dW_local);

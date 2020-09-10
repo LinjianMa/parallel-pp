@@ -21,7 +21,7 @@ template <typename dtype> LocalMTTKRP<dtype>::~LocalMTTKRP() {
   free(arrs_mttkrp);
   free(mttkrp);
   delete V_local;
-  for (int i = 0; i<this->order; i++){
+  for (int i = 0; i < this->order; i++) {
     delete W_local[i];
   }
   free(W_local);
@@ -50,7 +50,7 @@ template <typename dtype> void LocalMTTKRP<dtype>::get_V_local_transposes() {
 
   int num_transposes = 0;
   int odd_mode = order % 2;
-  if (odd_mode == 1){
+  if (odd_mode == 1) {
     num_transposes = int((order - 1) / 2);
   } else {
     num_transposes = int(order / 2);
@@ -61,7 +61,7 @@ template <typename dtype> void LocalMTTKRP<dtype>::get_V_local_transposes() {
   trans_V_str_map[0] = string(seq_V);
   trans_V_str_map[order - 1] = string(seq_V);
 
-  for (int partial_trans=1; partial_trans<num_transposes; partial_trans++) {
+  for (int partial_trans = 1; partial_trans < num_transposes; partial_trans++) {
     char seq_trans[order + 1];
     int lens_out[order];
     seq_trans[order] = '\0';
@@ -191,7 +191,8 @@ void LocalMTTKRP<dtype>::distribute_W(int i, Matrix<> **W, Matrix<> **W_local) {
   // update the W_local
   IASSERT(this->V->pad_edge_len[i] == W[i]->pad_edge_len[0]);
   int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->phys_phase[i]);
-  memcpy(W_local[i]->data, (char *)arrs[i], sizeof(dtype) * pad_local_col * this->rank);
+  memcpy(W_local[i]->data, (char *)arrs[i],
+         sizeof(dtype) * pad_local_col * this->rank);
 
   t_mttkrp_remap.stop();
 }
@@ -242,7 +243,7 @@ template <typename dtype> void LocalMTTKRP<dtype>::construct_mttkrp_locals() {
     int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->phys_phase[i]);
     this->mttkrp_local_mat[i] =
         new Matrix<dtype>(pad_local_col, this->rank, *sworld);
-    char * tempdata = this->mttkrp_local_mat[i]->data;
+    char *tempdata = this->mttkrp_local_mat[i]->data;
     this->mttkrp_local_mat[i]->data = (char *)arrs_mttkrp[i];
     free(tempdata);
   }
