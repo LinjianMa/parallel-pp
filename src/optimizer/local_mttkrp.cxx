@@ -21,6 +21,10 @@ template <typename dtype> LocalMTTKRP<dtype>::~LocalMTTKRP() {
   free(arrs_mttkrp);
   free(mttkrp);
   delete V_local;
+  for (int i = 0; i<this->order; i++){
+    delete W_local[i];
+  }
+  free(W_local);
 }
 
 template <typename dtype> void LocalMTTKRP<dtype>::setup_V_local_data() {
@@ -29,7 +33,12 @@ template <typename dtype> void LocalMTTKRP<dtype>::setup_V_local_data() {
     pad_local_col[j] = int(this->V->pad_edge_len[j] / this->phys_phase[j]);
   }
   this->V_local = new Tensor<>(this->V->order, pad_local_col, *this->sworld);
-  this->V_local->data = this->V->data;
+  int num_elements = 1;
+  for (int j = 0; j < this->order; j++) {
+    num_elements *= pad_local_col[j];
+  }
+  // TODO: currently it uses 2X memory.
+  memcpy(this->V_local->data, this->V->data, sizeof(dtype) * num_elements);
 }
 
 template <typename dtype> void LocalMTTKRP<dtype>::get_V_local_transposes() {
@@ -122,7 +131,7 @@ template <typename dtype> void LocalMTTKRP<dtype>::mttkrp_calc(int mode) {
 
 template <typename dtype>
 void LocalMTTKRP<dtype>::distribute_W(int i, Matrix<> **W, Matrix<> **W_local) {
-
+  // TODO: To avoid frequently creating and deleting W matrices.
   Timer t_mttkrp_remap("MTTKRP_distribute_W");
   t_mttkrp_remap.start();
 
@@ -179,11 +188,10 @@ void LocalMTTKRP<dtype>::distribute_W(int i, Matrix<> **W, Matrix<> **W_local) {
     arrs[i] = (dtype *)m->data;
     cmdt.bcast(m->data, m->size, V->sr->mdtype(), 0);
   }
-  // build the W_local
+  // update the W_local
   IASSERT(this->V->pad_edge_len[i] == W[i]->pad_edge_len[0]);
   int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->phys_phase[i]);
-  W_local[i] = new Matrix<dtype>(pad_local_col, this->rank, *sworld);
-  W_local[i]->data = (char *)arrs[i];
+  memcpy(W_local[i]->data, (char *)arrs[i], sizeof(dtype) * pad_local_col * this->rank);
 
   t_mttkrp_remap.stop();
 }
@@ -222,15 +230,6 @@ template <typename dtype> void LocalMTTKRP<dtype>::construct_mttkrp_locals() {
       char mat_idx[2];
       mat_idx[0] = par_idx[topo_dim];
       mat_idx[1] = 'a';
-
-      int comm_lda = 1;
-      for (int l = 0; l < topo_dim; l++) {
-        comm_lda *= V->topo->dim_comm[l].np;
-      }
-      CTF_int::CommData cmdt(V->wrld->rank -
-                                 comm_lda * V->topo->dim_comm[topo_dim].rank,
-                             V->topo->dim_comm[topo_dim].rank, V->wrld->cdt);
-
       Matrix<dtype> *m =
           new Matrix<dtype>(this->W[i]->nrow, this->rank, mat_idx, par[par_idx],
                             Idx_Partition(), 0, *V->wrld, *V->sr);
@@ -243,7 +242,9 @@ template <typename dtype> void LocalMTTKRP<dtype>::construct_mttkrp_locals() {
     int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->phys_phase[i]);
     this->mttkrp_local_mat[i] =
         new Matrix<dtype>(pad_local_col, this->rank, *sworld);
+    char * tempdata = this->mttkrp_local_mat[i]->data;
     this->mttkrp_local_mat[i]->data = (char *)arrs_mttkrp[i];
+    free(tempdata);
   }
   t_mttkrp_construction.stop();
 }
@@ -289,7 +290,6 @@ void LocalMTTKRP<dtype>::setup(Tensor<dtype> *V, Matrix<dtype> **mat_list) {
   this->V = V;
   this->W = mat_list;
   this->mttkrp = (Matrix<> **)malloc(V->order * sizeof(Matrix<> *));
-  this->W_local = (Matrix<> **)malloc(V->order * sizeof(Matrix<> *));
   this->mttkrp_local_mat = (Matrix<> **)malloc(V->order * sizeof(Matrix<> *));
 
   this->arrs = (dtype **)malloc(sizeof(dtype *) * V->order);
@@ -298,6 +298,12 @@ void LocalMTTKRP<dtype>::setup(Tensor<dtype> *V, Matrix<dtype> **mat_list) {
   this->phys_phase = (int *)malloc(order * sizeof(int));
   for (int i = 0; i < order; i++) {
     this->phys_phase[i] = V->edge_map[i].calc_phys_phase();
+  }
+
+  this->W_local = (Matrix<> **)malloc(V->order * sizeof(Matrix<> *));
+  for (int i = 0; i < this->order; i++) {
+    int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->phys_phase[i]);
+    this->W_local[i] = new Matrix<dtype>(pad_local_col, this->rank, *sworld);
   }
 
   this->ldas = (int64_t *)malloc(order * sizeof(int64_t));
