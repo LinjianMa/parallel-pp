@@ -63,11 +63,9 @@ void DimensionTree::Right_Subtree(vector<int> top_node) {
   // construct the right tree
   vector<int> child_node = vector<int>(top_node.size() - 1);
   for (int i = 0; i < child_node.size(); i++) {
-    child_node[i] = top_node[i];
+    child_node[i] = top_node[i + 1];
   }
-  child_node[child_node.size() - 1] = top_node[top_node.size() - 1];
-
-  vector<int> mat_index = {top_node[top_node.size() - 2]};
+  vector<int> mat_index = {top_node[0]};
 
   string child_seq, top_seq, mat_seq;
   vec2str(child_node, child_seq);
