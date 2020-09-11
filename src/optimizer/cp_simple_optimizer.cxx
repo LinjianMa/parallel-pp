@@ -38,16 +38,15 @@ template <typename dtype> double CPSimpleOptimizer<dtype>::step() {
       lens_H[j] = this->W[index[j]]->nrow;
     }
     // initialize matrix M
-    Matrix<dtype> M = Matrix<dtype>(this->W[i]->nrow, this->W[i]->ncol);
     // Khatri-Rao Product C[I,J,K]= A[I,K](op)B[J,K]
-    KhatriRao_contract(M, *(this->V), this->W, index, lens_H, *dw);
+    KhatriRao_contract(*this->M[i], *(this->V), this->W, index, lens_H, *dw);
     // calculating S
     CPOptimizer<dtype>::update_S(i);
     // calculate gradient
     this->grad_W[i]["ij"] =
-        -M["ij"] + this->W[i]->operator[]("ik") * this->S["kj"];
+        -this->M[i]->operator[]("ij") + this->W[i]->operator[]("ik") * this->S["kj"];
     // subproblem M=W*S
-    cholesky_solve(M, *this->W[i], this->S);
+    cholesky_solve(*this->M[i], *this->W[i], this->S);
     // recover the char
     swap_char(seq_V, i, order - 1);
   }

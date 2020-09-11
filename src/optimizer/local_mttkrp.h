@@ -14,11 +14,15 @@ public:
 
   void distribute_W(int i, Matrix<> **W, Matrix<> **W_local);
 
+  void construct_W_remap(Matrix<> **W, Matrix<> **W_remap);
+
   void setup_V_local_data();
 
   void get_V_local_transposes();
 
   void construct_mttkrp_locals();
+
+  void construct_mttkrp_reduce_communicators();
 
   void mttkrp_calc(int mode);
 
@@ -34,6 +38,7 @@ public:
 
   // W: output solutions
   Matrix<dtype> **W = NULL;
+  Matrix<dtype> **W_remap = NULL;
   Matrix<dtype> **W_local = NULL;
   // arrs[i] is the local data for W.
   dtype **arrs = NULL;
@@ -59,6 +64,10 @@ public:
   // The map storing the transposes of the input tensor (used in MSDT).
   map<int, Tensor<dtype> *> trans_V_local_map;
   map<int, string> trans_V_str_map;
+
+  // Save the MPI communicators used in mttkrp_reduce
+  MPI_Comm **cm_reduce = NULL;
+  int **cmr_reduce = NULL;
 };
 
 #include "local_mttkrp.cxx"

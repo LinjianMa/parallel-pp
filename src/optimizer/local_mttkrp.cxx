@@ -25,6 +25,13 @@ template <typename dtype> LocalMTTKRP<dtype>::~LocalMTTKRP() {
     delete W_local[i];
   }
   free(W_local);
+  for (int i = 0; i < this->order; i++) {
+    if (this->cm_reduce[i] != NULL){
+      MPI_Comm_free(this->cm_reduce[i]);
+    }
+  }
+  free(this->cm_reduce);
+  free(this->cmr_reduce);
 }
 
 template <typename dtype> void LocalMTTKRP<dtype>::setup_V_local_data() {
@@ -131,11 +138,8 @@ template <typename dtype> void LocalMTTKRP<dtype>::mttkrp_calc(int mode) {
 
 template <typename dtype>
 void LocalMTTKRP<dtype>::distribute_W(int i, Matrix<> **W, Matrix<> **W_local) {
-  // TODO: To avoid frequently creating and deleting W matrices.
   Timer t_mttkrp_remap("MTTKRP_distribute_W");
   t_mttkrp_remap.start();
-
-  Tensor<dtype> *mat = W[i];
 
   if (this->phys_phase[i] == 1) {
     // one process in dim i
@@ -144,18 +148,9 @@ void LocalMTTKRP<dtype>::distribute_W(int i, Matrix<> **W, Matrix<> **W_local) {
       this->arrs[i] = (dtype *)W[i]->data;
     } else {
       // overall >1 processes
-      char nonastr[2];
-      nonastr[0] = 'a' - 1;
-      nonastr[1] = 'a' - 2;
-      Matrix<dtype> *m =
-          new Matrix<dtype>(W[i]->nrow, this->rank, nonastr, par[par_idx],
-                            Idx_Partition(), 0, *this->world, *V->sr);
-      m->operator[]("ij") = mat->operator[]("ij");
-      delete W[i];
-      W[i] = m;
-
+      this->W_remap[i]->operator[]("ij") = W[i]->operator[]("ij");
       arrs[i] = (dtype *)this->V->sr->alloc(this->V->lens[i] * this->rank);
-      W[i]->read_all(arrs[i], true);
+      this->W_remap[i]->read_all(arrs[i], true);
     }
   } else {
     // multiple processes in dim i
@@ -163,10 +158,6 @@ void LocalMTTKRP<dtype>::distribute_W(int i, Matrix<> **W, Matrix<> **W_local) {
     IASSERT(V->edge_map[i].type == CTF_int::PHYSICAL_MAP);
     IASSERT(!V->edge_map[i].has_child ||
             V->edge_map[i].child->type != CTF_int::PHYSICAL_MAP);
-
-    char mat_idx[2];
-    mat_idx[0] = par_idx[topo_dim];
-    mat_idx[1] = 'a';
 
     int comm_lda = 1;
     for (int l = 0; l < topo_dim; l++) {
@@ -176,20 +167,12 @@ void LocalMTTKRP<dtype>::distribute_W(int i, Matrix<> **W, Matrix<> **W_local) {
                                comm_lda * V->topo->dim_comm[topo_dim].rank,
                            V->topo->dim_comm[topo_dim].rank, V->wrld->cdt);
 
-    Matrix<dtype> *m =
-        new Matrix<dtype>(W[i]->nrow, this->rank, mat_idx, par[par_idx],
-                          Idx_Partition(), 0, *V->wrld, *V->sr);
-
-    m->operator[]("ij") = mat->operator[]("ij");
-
-    delete W[i];
-    W[i] = m;
-
-    arrs[i] = (dtype *)m->data;
-    cmdt.bcast(m->data, m->size, V->sr->mdtype(), 0);
+    this->W_remap[i]->operator[]("ij") = W[i]->operator[]("ij");
+    arrs[i] = (dtype *)this->W_remap[i]->data;
+    cmdt.bcast(this->W_remap[i]->data, this->W_remap[i]->size, V->sr->mdtype(), 0);
   }
   // update the W_local
-  IASSERT(this->V->pad_edge_len[i] == W[i]->pad_edge_len[0]);
+  IASSERT(this->V->pad_edge_len[i] == this->W_remap[i]->pad_edge_len[0]);
   int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->phys_phase[i]);
   memcpy(W_local[i]->data, (char *)arrs[i],
          sizeof(dtype) * pad_local_col * this->rank);
@@ -197,9 +180,43 @@ void LocalMTTKRP<dtype>::distribute_W(int i, Matrix<> **W, Matrix<> **W_local) {
   t_mttkrp_remap.stop();
 }
 
+template <typename dtype>
+void LocalMTTKRP<dtype>::construct_W_remap(Matrix<> **W, Matrix<> **W_remap) {
+  for (int i = 0; i < this->order; i++) {
+    if (this->phys_phase[i] == 1) {
+      // one process in dim i
+      if (this->world->np == 1) {
+        // overall only 1 process
+        W_remap[i] = new Matrix<dtype>(W[i]->nrow, this->rank, *this->world);
+      } else {
+        // overall >1 processes
+        char nonastr[2];
+        nonastr[0] = 'a' - 1;
+        nonastr[1] = 'a' - 2;
+        W_remap[i] = new Matrix<dtype>(W[i]->nrow, this->rank, nonastr, par[par_idx],
+                              Idx_Partition(), 0, *this->world, *V->sr);
+      }
+    } else {
+      // multiple processes in dim i
+      int topo_dim = V->edge_map[i].cdt;
+      IASSERT(V->edge_map[i].type == CTF_int::PHYSICAL_MAP);
+      IASSERT(!V->edge_map[i].has_child ||
+              V->edge_map[i].child->type != CTF_int::PHYSICAL_MAP);
+
+      char mat_idx[2];
+      mat_idx[0] = par_idx[topo_dim];
+      mat_idx[1] = 'a';
+
+      W_remap[i] =
+          new Matrix<dtype>(W[i]->nrow, this->rank, mat_idx, par[par_idx],
+                            Idx_Partition(), 0, *V->wrld, *V->sr);
+    }
+  }
+}
+
 template <typename dtype> void LocalMTTKRP<dtype>::construct_mttkrp_locals() {
 
-  Timer t_mttkrp_construction("t_mttkrp_construction");
+  Timer t_mttkrp_construction("mttkrp_construction");
   t_mttkrp_construction.start();
 
   for (int i = 0; i < order; i++) {
@@ -239,7 +256,7 @@ template <typename dtype> void LocalMTTKRP<dtype>::construct_mttkrp_locals() {
       this->arrs_mttkrp[i] = (dtype *)m->data;
     }
     // build the mttkrp_local_mat
-    IASSERT(this->V->pad_edge_len[i] == this->W[i]->pad_edge_len[0]);
+    IASSERT(this->V->pad_edge_len[i] == this->W_remap[i]->pad_edge_len[0]);
     int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->phys_phase[i]);
     this->mttkrp_local_mat[i] =
         new Matrix<dtype>(pad_local_col, this->rank, *sworld);
@@ -247,6 +264,8 @@ template <typename dtype> void LocalMTTKRP<dtype>::construct_mttkrp_locals() {
     this->mttkrp_local_mat[i]->data = (char *)arrs_mttkrp[i];
     free(tempdata);
   }
+  // construct communicators
+  construct_mttkrp_reduce_communicators();
   t_mttkrp_construction.stop();
 }
 
@@ -254,29 +273,38 @@ template <typename dtype>
 void LocalMTTKRP<dtype>::post_mttkrp_reduce(int mode) {
   int red_len = this->world->np / this->phys_phase[mode];
   if (red_len > 1) {
-    int64_t sz;
-    sz = this->mttkrp[mode]->size;
-
-    int jr = this->V->edge_map[mode].calc_phys_rank(this->V->topo);
-    MPI_Comm cm;
-    MPI_Comm_split(this->world->comm, jr, this->world->rank, &cm);
-    int cmr;
-    MPI_Comm_rank(cm, &cmr);
-
     Timer t_mttkrp_red("MTTKRP_Reduce");
     t_mttkrp_red.start();
-    if (cmr == 0) {
+    int64_t sz = this->mttkrp[mode]->size;
+    if (*this->cmr_reduce[mode] == 0) {
       MPI_Reduce(MPI_IN_PLACE, this->arrs_mttkrp[mode], sz,
-                 this->V->sr->mdtype(), this->V->sr->addmop(), 0, cm);
+                 this->V->sr->mdtype(), this->V->sr->addmop(), 0, *this->cm_reduce[mode]);
     } else {
       MPI_Reduce(this->arrs_mttkrp[mode], NULL, sz, this->V->sr->mdtype(),
-                 this->V->sr->addmop(), 0, cm);
+                 this->V->sr->addmop(), 0, *this->cm_reduce[mode]);
       std::fill(this->arrs_mttkrp[mode], this->arrs_mttkrp[mode] + sz,
                 *((dtype *)this->V->sr->addid()));
     }
     t_mttkrp_red.stop();
-    MPI_Comm_free(&cm);
   }
+}
+
+template <typename dtype>
+void LocalMTTKRP<dtype>::construct_mttkrp_reduce_communicators() {
+  Timer t_mttkrp_red_prep("MTTKRP_Reduce_prep");
+  t_mttkrp_red_prep.start();
+
+  for (int mode=0; mode<this->V->order; mode ++) {
+    int red_len = this->world->np / this->phys_phase[mode];
+    if (red_len > 1) {
+      int jr = this->V->edge_map[mode].calc_phys_rank(this->V->topo);
+      this->cm_reduce[mode] = new MPI_Comm();
+      MPI_Comm_split(this->world->comm, jr, this->world->rank, this->cm_reduce[mode]);
+      this->cmr_reduce[mode] = new int();
+      MPI_Comm_rank(*this->cm_reduce[mode], this->cmr_reduce[mode]);
+    }
+  }
+  t_mttkrp_red_prep.stop();
 }
 
 template <typename dtype>
@@ -301,6 +329,7 @@ void LocalMTTKRP<dtype>::setup(Tensor<dtype> *V, Matrix<dtype> **mat_list) {
     this->phys_phase[i] = V->edge_map[i].calc_phys_phase();
   }
 
+  // W_local
   this->W_local = (Matrix<> **)malloc(V->order * sizeof(Matrix<> *));
   for (int i = 0; i < this->order; i++) {
     int64_t pad_local_col = int(this->V->pad_edge_len[i] / this->phys_phase[i]);
@@ -318,4 +347,14 @@ void LocalMTTKRP<dtype>::setup(Tensor<dtype> *V, Matrix<dtype> **mat_list) {
   for (int i = 0; i < V->topo->order; i++) {
     par_idx[i] = 'a' + i + 1;
   }
+
+  // W_remap
+  // Note: W_remap only serves as an data transfer intermediate. It shouldn't
+  // take part in any calculations.
+  this->W_remap = (Matrix<> **)malloc(V->order * sizeof(Matrix<> *));
+  construct_W_remap(this->W, this->W_remap);
+
+  // cm_reduce
+  this->cm_reduce = (MPI_Comm **)malloc(V->order * sizeof(MPI_Comm *));
+  this->cmr_reduce = (int **)malloc(V->order * sizeof(int *));
 }

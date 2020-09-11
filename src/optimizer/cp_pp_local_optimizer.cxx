@@ -84,12 +84,10 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
     this->local_mttkrp->mttkrp_local_mat[i]->operator[]("ij") = N["ij"];
     this->local_mttkrp->post_mttkrp_reduce(i);
 
-    Matrix<> M_reshape =
-        Matrix<>(this->W[i]->nrow, this->W[i]->ncol, *this->world);
-    M_reshape["ij"] = this->local_mttkrp->mttkrp[i]->operator[]("ij");
+    this->M[i]->operator[]("ij") = this->local_mttkrp->mttkrp[i]->operator[]("ij");
     Matrix<> update_W = Matrix<>(*this->W[i]);
 
-    cholesky_solve(M_reshape, update_W, this->S);
+    cholesky_solve(*this->M[i], update_W, this->S);
 
     this->dW[i]->operator[]("ij") = this->dW[i]->operator[]("ij") +
                                     update_W["ij"] -

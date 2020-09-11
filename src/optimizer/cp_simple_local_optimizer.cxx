@@ -52,10 +52,8 @@ template <typename dtype> double CPLocalOptimizer<dtype>::step() {
                             this->W[i]->operator[]("ik") * this->S["kj"];
 
     // subproblem M=W*S
-    Matrix<> M_reshape =
-        Matrix<>(this->W[i]->nrow, this->W[i]->ncol, *(this->world));
-    M_reshape["ij"] = local_mttkrp->mttkrp[i]->operator[]("ij");
-    cholesky_solve(M_reshape, *(this->W[i]), this->S);
+    this->M[i]->operator[]("ij") = local_mttkrp->mttkrp[i]->operator[]("ij");
+    cholesky_solve(*this->M[i], *(this->W[i]), this->S);
 
     local_mttkrp->distribute_W(i, local_mttkrp->W, local_mttkrp->W_local);
   }

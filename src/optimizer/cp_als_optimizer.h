@@ -23,6 +23,7 @@ public:
   Tensor<dtype> *V = NULL;
   // W: output solutions
   Matrix<dtype> **W = NULL;
+  Matrix<dtype> **M = NULL;
   // grad_W: gradient matrices
   Matrix<dtype> *grad_W = NULL;
 

@@ -37,6 +37,8 @@ void CPDTLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
 
 template <typename dtype>
 void CPDTLocalOptimizer<dtype>::solve_one_mode(int i) {
+  Timer t_DT_solve_one_mode("DT_solve_one_mode");
+  t_DT_solve_one_mode.start();
   int ii = this->indexes[i];
   vector<int> mat_index = {i};
 
@@ -59,12 +61,11 @@ void CPDTLocalOptimizer<dtype>::solve_one_mode(int i) {
   this->grad_W[ii]["ij"] = -local_mttkrp->mttkrp[ii]->operator[]("ij") +
                            this->W[ii]->operator[]("ik") * this->S["kj"];
 
-  Matrix<> M_reshape =
-      Matrix<>(this->W[ii]->nrow, this->W[ii]->ncol, *(this->world));
-  M_reshape["ij"] = local_mttkrp->mttkrp[ii]->operator[]("ij");
-  spd_solve(M_reshape, *this->W[ii], this->S);
+  this->M[ii]->operator[]("ij") = local_mttkrp->mttkrp[ii]->operator[]("ij");
+  spd_solve(*this->M[ii], *this->W[ii], this->S);
 
   local_mttkrp->distribute_W(ii, local_mttkrp->W, local_mttkrp->W_local);
+  t_DT_solve_one_mode.stop();
 }
 
 template <typename dtype> double CPDTLocalOptimizer<dtype>::step_dt() {
@@ -98,12 +99,14 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_dt() {
 }
 
 template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
-
+  Timer t_step_msdt("step_msdt");
+  t_step_msdt.start();
   // clear the Hash Table
   for (auto const &x : this->mttkrp_map) {
     delete x.second;
   }
   this->mttkrp_map.clear();
+  t_step_msdt.stop();
 
   // reinitialize
   this->dt->update_indexes(this->indexes, this->left_index);

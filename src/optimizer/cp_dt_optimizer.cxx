@@ -135,15 +135,15 @@ template <typename dtype> void CPDTOptimizer<dtype>::solve_one_mode(int i) {
   if (mttkrp_map.find(mat_seq) == mttkrp_map.end()) {
     mttkrp_map_DT(mat_seq, this->world, this->W, this->V);
   }
-  Matrix<dtype> M = *mttkrp_map[mat_seq];
+  this->M[ii]->operator[]("ij") = mttkrp_map[mat_seq]->operator[]("ij");
 
   // calculating S
   CPOptimizer<dtype>::update_S(ii);
   // calculate gradient
   this->grad_W[ii]["ij"] =
-      -M["ij"] + this->W[ii]->operator[]("ik") * this->S["kj"];
+      -this->M[ii]->operator[]("ij") + this->W[ii]->operator[]("ik") * this->S["kj"];
 
-  spd_solve(M, *this->W[ii], this->S);
+  spd_solve(*this->M[ii], *this->W[ii], this->S);
 }
 
 template <typename dtype> double CPDTOptimizer<dtype>::step_dt() {

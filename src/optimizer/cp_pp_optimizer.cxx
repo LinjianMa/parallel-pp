@@ -95,10 +95,11 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_pp() {
   }
 
   for (int i = 0; i < this->order; i++) {
-    Matrix<> N = mttkrp_approx(i, this->dW);
+    Matrix<> mttkrp_temp = mttkrp_approx(i, this->dW);
+    this->M[i]->operator[]("ij") = mttkrp_temp["ij"];
     CPOptimizer<dtype>::update_S(i);
     Matrix<> update_W = Matrix<>(*this->W[i]);
-    cholesky_solve(N, update_W, this->S);
+    cholesky_solve(*this->M[i], update_W, this->S);
     this->dW[i]->operator[]("ij") = this->dW[i]->operator[]("ij") +
                                     update_W["ij"] -
                                     this->W[i]->operator[]("ij");
