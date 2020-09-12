@@ -44,6 +44,20 @@ template <typename dtype> CPDTOptimizer<dtype>::~CPDTOptimizer() {
 }
 
 template <typename dtype>
+void CPDTOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> **mat,
+                                     Matrix<dtype> *grad, double lambda) {
+
+  CPOptimizer<dtype>::configure(input, mat, grad, lambda);
+  this->is_equidimentional = true;
+  for (int i = 1; i < this->order; i++) {
+    if (this->V->lens[i] != this->V->lens[0]) {
+      this->is_equidimentional = false;
+      break;
+    }
+  }
+}
+
+template <typename dtype>
 void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
                                            Matrix<> **mat, Tensor<> *T,
                                            const char *seq_T,
@@ -78,16 +92,18 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
     else
       lens[ii] = init_tensor_lens[int(seq_map_init[ii] - 'a')];
   }
-  Timer t_mttkrp_map_first_intermediate_init(
-      "mttkrp_map_first_intermediate_init");
-  t_mttkrp_map_first_intermediate_init.start();
-  mttkrp_map[seq_tree_top] = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
-  t_mttkrp_map_first_intermediate_init.stop();
-
-  Timer t_mttkrp_map_first_intermediate("mttkrp_map_first_intermediate");
+  Timer t_mttkrp_map_first_intermediate(
+      "mttkrp_map_first_intermediate");
   t_mttkrp_map_first_intermediate.start();
-  mttkrp_map[seq_tree_top]->operator[](seq_map_init) +=
-      (*T)[seq_T] * mat[left_index]->operator[](seq_matrix);
+  if (mttkrp_map.find(seq_tree_top) == mttkrp_map.end()) {
+    mttkrp_map[seq_tree_top] = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
+    mttkrp_map[seq_tree_top]->operator[](seq_map_init) +=
+        (*T)[seq_T] * mat[left_index]->operator[](seq_matrix);
+  } else {
+    mttkrp_map[seq_tree_top]->operator[](seq_map_init) =
+        (*T)[seq_T] * mat[left_index]->operator[](seq_matrix);
+  }
+  mttkrp_exist_map[seq_tree_top] = true;
   t_mttkrp_map_first_intermediate.stop();
 
   t_mttkrp_map_init.stop();
@@ -102,7 +118,7 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index, World *dw,
   char const *index_char = index.c_str();
 
   char const *parent_index = dt->parent[index].c_str();
-  if (mttkrp_map.find(parent_index) == mttkrp_map.end()) {
+  if (mttkrp_exist_map.find(parent_index) == mttkrp_exist_map.end()) {
     mttkrp_map_DT(parent_index, dw, mat, T);
   }
   // get the modindexe of mat
@@ -116,11 +132,17 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index, World *dw,
     else
       lens[ii] = T->lens[int(indexes[index[ii] - 'a'])];
   }
-  mttkrp_map[index] = new Tensor<dtype>(strlen(index_char), lens, *dw);
-
-  mttkrp_map[index]->operator[](index_char) +=
-      mttkrp_map[parent_index]->operator[](parent_index) *
-      mat[indexes[W_index]]->operator[](mat_index);
+  if (mttkrp_map.find(index) == mttkrp_map.end()) {
+    mttkrp_map[index] = new Tensor<dtype>(strlen(index_char), lens, *dw);
+    mttkrp_map[index]->operator[](index_char) +=
+        mttkrp_map[parent_index]->operator[](parent_index) *
+        mat[indexes[W_index]]->operator[](mat_index);
+  } else {
+    mttkrp_map[index]->operator[](index_char) =
+        mttkrp_map[parent_index]->operator[](parent_index) *
+        mat[indexes[W_index]]->operator[](mat_index);
+  }
+  mttkrp_exist_map[index] = true;
 
   t_mttkrp_map_DT.stop();
 }
@@ -132,7 +154,7 @@ template <typename dtype> void CPDTOptimizer<dtype>::solve_one_mode(int i) {
   string mat_seq;
   vec2str(mat_index, mat_seq);
 
-  if (mttkrp_map.find(mat_seq) == mttkrp_map.end()) {
+  if (mttkrp_exist_map.find(mat_seq) == mttkrp_exist_map.end()) {
     mttkrp_map_DT(mat_seq, this->world, this->W, this->V);
   }
   this->M[ii]->operator[]("ij") = mttkrp_map[mat_seq]->operator[]("ij");
@@ -156,10 +178,13 @@ template <typename dtype> double CPDTOptimizer<dtype>::step_dt() {
     left_index = left_index2;
   }
   // clear the Hash Table
-  for (auto const &x : this->mttkrp_map) {
-    delete x.second;
+  if (this->is_equidimentional == false) {
+    for (auto const &x : this->mttkrp_map) {
+      delete x.second;
+    }
+    mttkrp_map.clear();
   }
-  mttkrp_map.clear();
+  mttkrp_exist_map.clear();
 
   // reinitialize
   mttkrp_map_init(left_index, this->world, this->W, this->V, this->seq_V,
@@ -180,10 +205,13 @@ template <typename dtype> double CPDTOptimizer<dtype>::step_dt() {
 template <typename dtype> double CPDTOptimizer<dtype>::step_msdt() {
 
   // clear the Hash Table
-  for (auto const &x : this->mttkrp_map) {
-    delete x.second;
+  if (this->is_equidimentional == false) {
+    for (auto const &x : this->mttkrp_map) {
+      delete x.second;
+    }
+    mttkrp_map.clear();
   }
-  mttkrp_map.clear();
+  mttkrp_exist_map.clear();
 
   // reinitialize
   dt->update_indexes(indexes, left_index);

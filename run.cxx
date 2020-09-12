@@ -274,8 +274,7 @@ int main(int argc, char **argv) {
         Matrix<> **W = (Matrix<> **)malloc(
             dim * sizeof(Matrix<> *)); // N matrices V will be decomposed into
         for (int i = 0; i < dim; i++) {
-          // use subworld matrix to make the matrix deterministic across various
-          // processes
+          // use subworld matrix to make the matrix deterministic across various processes
           Matrix<> *W_subworld = NULL;
           if (dw.rank == 0) {
             W_subworld = new Matrix<>(s, R, sworld);

@@ -33,6 +33,14 @@ void CPDTLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
   if (this->use_msdt == true) {
     local_mttkrp->get_V_local_transposes();
   }
+
+  this->is_equidimentional = true;
+  for (int i = 1; i < this->order; i++) {
+    if (this->local_mttkrp->V_local->lens[i] != this->local_mttkrp->V_local->lens[0]) {
+      this->is_equidimentional = false;
+      break;
+    }
+  }
 }
 
 template <typename dtype>
@@ -78,10 +86,13 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_dt() {
     this->left_index = this->left_index2;
   }
   // clear the Hash Table
-  for (auto const &x : this->mttkrp_map) {
-    delete x.second;
+  if (this->is_equidimentional == false) {
+    for (auto const &x : this->mttkrp_map) {
+      delete x.second;
+    }
+    this->mttkrp_map.clear();
   }
-  this->mttkrp_map.clear();
+  this->mttkrp_exist_map.clear();
   // reinitialize
   CPDTOptimizer<dtype>::mttkrp_map_init(
       this->left_index, local_mttkrp->sworld, local_mttkrp->W_local,
@@ -102,11 +113,13 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
   Timer t_step_msdt("step_msdt");
   t_step_msdt.start();
   // clear the Hash Table
-  for (auto const &x : this->mttkrp_map) {
-    delete x.second;
+  if (this->is_equidimentional == false) {
+    for (auto const &x : this->mttkrp_map) {
+      delete x.second;
+    }
+    this->mttkrp_map.clear();
   }
-  this->mttkrp_map.clear();
-  t_step_msdt.stop();
+  this->mttkrp_exist_map.clear();
 
   // reinitialize
   this->dt->update_indexes(this->indexes, this->left_index);
@@ -120,8 +133,9 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
   for (int i = 0; i < this->indexes.size(); i++) {
     solve_one_mode(i);
   }
-
   this->left_index = (this->left_index + this->order - 1) % this->order;
+
+  t_step_msdt.stop();
   return 1. * (this->order - 1) / this->order;
 }
 

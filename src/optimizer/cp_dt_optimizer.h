@@ -14,6 +14,9 @@ public:
 
   ~CPDTOptimizer();
 
+  void configure(Tensor<dtype> *input, Matrix<dtype> **mat, Matrix<dtype> *grad,
+                 double lambda);
+
   double step();
 
   double step_dt();
@@ -43,6 +46,7 @@ public:
 
   // The map store all the intermeidates in one MSDT subtree.
   map<string, Tensor<dtype> *> mttkrp_map;
+  map<string, bool> mttkrp_exist_map;
 
   bool use_msdt = false;
 
@@ -64,6 +68,8 @@ public:
 
   // dimension tree
   DimensionTree *dt = NULL;
+  // whether is equidimentional
+  bool is_equidimentional;
 };
 
 #include "cp_dt_optimizer.cxx"

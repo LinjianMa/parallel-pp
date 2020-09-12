@@ -21,7 +21,7 @@ template <typename dtype>
 void CPPPOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> **mat,
                                      Matrix<dtype> *grad, double lambda) {
 
-  CPOptimizer<dtype>::configure(input, mat, grad, lambda);
+  CPDTOptimizer<dtype>::configure(input, mat, grad, lambda);
   for (int i = 0; i < this->order; i++) {
     this->dW[i] = new Matrix<>(this->W[i]->nrow, this->rank, *this->world);
   }
