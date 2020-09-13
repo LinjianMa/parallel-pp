@@ -42,6 +42,9 @@ void CPPPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
 }
 
 template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
+  Timer t_localpp_step_dt("localpp_step_dt");
+  t_localpp_step_dt.start();
+
   if (this->world->rank == 0) {
     cout << "***** dt step *****" << endl;
   }
@@ -69,10 +72,14 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
     this->reinitialize_tree = true;
   }
 
+  t_localpp_step_dt.stop();
   return 1.;
 }
 
 template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
+  Timer t_localpp_step_pp("localpp_step_pp");
+  t_localpp_step_pp.start();
+
   if (this->world->rank == 0) {
     cout << "***** pairwise perturbation step *****" << endl;
   }
@@ -87,11 +94,9 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
     this->M[i]->operator[]("ij") = this->local_mttkrp->mttkrp[i]->operator[]("ij");
     Matrix<> update_W = Matrix<>(*this->W[i]);
 
-    cholesky_solve(*this->M[i], update_W, this->S);
+    spd_solve(*this->M[i], update_W, this->S);
 
-    this->dW[i]->operator[]("ij") = this->dW[i]->operator[]("ij") +
-                                    update_W["ij"] -
-                                    this->W[i]->operator[]("ij");
+    this->dW[i]->operator[]("ij") += update_W["ij"] - this->W[i]->operator[]("ij");
     this->W[i]->operator[]("ij") = update_W["ij"];
 
     this->local_mttkrp->distribute_W(i, this->local_mttkrp->W,
@@ -113,6 +118,7 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
     this->reinitialize_tree = false;
   }
 
+  t_localpp_step_pp.stop();
   return 1.;
 }
 
