@@ -66,7 +66,8 @@ void CPOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> **mat,
   for (int i = 0; i < order; i++) {
     M[i] = new Matrix<>(this->W[i]->nrow, this->rank, *this->world);
     WTW[i] = new Matrix<>(this->rank, this->rank, *this->world);
-    WTW[i]->operator[]("jk") = this->W[i]->operator[]("ij") * this->W[i]->operator[]("ik");
+    WTW[i]->operator[]("jk") =
+        this->W[i]->operator[]("ij") * this->W[i]->operator[]("ik");
   }
 
   regul = Matrix<dtype>(mat[0]->ncol, mat[0]->ncol);

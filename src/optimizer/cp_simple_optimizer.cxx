@@ -43,11 +43,12 @@ template <typename dtype> double CPSimpleOptimizer<dtype>::step() {
     // calculating S
     CPOptimizer<dtype>::update_S(i);
     // calculate gradient
-    this->grad_W[i]["ij"] =
-        -this->M[i]->operator[]("ij") + this->W[i]->operator[]("ik") * this->S["kj"];
+    this->grad_W[i]["ij"] = -this->M[i]->operator[]("ij") +
+                            this->W[i]->operator[]("ik") * this->S["kj"];
     // subproblem M=W*S
     spd_solve(*this->M[i], *this->W[i], this->S);
-    this->WTW[i]->operator[]("jk") = this->W[i]->operator[]("ij") * this->W[i]->operator[]("ik");
+    this->WTW[i]->operator[]("jk") =
+        this->W[i]->operator[]("ij") * this->W[i]->operator[]("ik");
     // recover the char
     swap_char(seq_V, i, order - 1);
   }

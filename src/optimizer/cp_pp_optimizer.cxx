@@ -84,8 +84,9 @@ void CPPPOptimizer<dtype>::mttkrp_approx(int i, Matrix<> **dW, Matrix<> *N) {
     char const *parent_str = einstr[0].c_str();
     char const *mat_str = einstr[1].c_str();
     char const *out_str = einstr[2].c_str();
-    N->operator[](out_str) += this->name_tensor_map[parentname]->operator[](parent_str) *
-                         dW[j]->operator[](mat_str);
+    N->operator[](out_str) +=
+        this->name_tensor_map[parentname]->operator[](parent_str) *
+        dW[j]->operator[](mat_str);
   }
   for (int j = i + 1; j < this->order; j++) {
     vector<int> parent_index = {i, j};
@@ -94,8 +95,9 @@ void CPPPOptimizer<dtype>::mttkrp_approx(int i, Matrix<> **dW, Matrix<> *N) {
     char const *parent_str = einstr[0].c_str();
     char const *mat_str = einstr[1].c_str();
     char const *out_str = einstr[2].c_str();
-    N->operator[](out_str) += this->name_tensor_map[parentname]->operator[](parent_str) *
-                         dW[j]->operator[](mat_str);
+    N->operator[](out_str) +=
+        this->name_tensor_map[parentname]->operator[](parent_str) *
+        dW[j]->operator[](mat_str);
   }
 
   t_pp_mttkrp_approx.stop();
@@ -113,9 +115,11 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_pp() {
     mttkrp_approx(i, this->dW, this->M[i]);
     CPOptimizer<dtype>::update_S(i);
     spd_solve(*this->M[i], *this->update_W[i], this->S);
-    this->WTW[i]->operator[]("jk") = this->update_W[i]->operator[]("ij") * this->update_W[i]->operator[]("ik");
+    this->WTW[i]->operator[]("jk") = this->update_W[i]->operator[]("ij") *
+                                     this->update_W[i]->operator[]("ik");
 
-    this->dW[i]->operator[]("ij") += update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
+    this->dW[i]->operator[]("ij") +=
+        update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
     this->W[i]->operator[]("ij") = update_W[i]->operator[]("ij");
   }
 

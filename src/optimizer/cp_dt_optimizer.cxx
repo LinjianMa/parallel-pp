@@ -92,11 +92,11 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
     else
       lens[ii] = init_tensor_lens[int(seq_map_init[ii] - 'a')];
   }
-  Timer t_mttkrp_map_first_intermediate(
-      "mttkrp_map_first_intermediate");
+  Timer t_mttkrp_map_first_intermediate("mttkrp_map_first_intermediate");
   t_mttkrp_map_first_intermediate.start();
   if (mttkrp_map.find(seq_tree_top) == mttkrp_map.end()) {
-    mttkrp_map[seq_tree_top] = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
+    mttkrp_map[seq_tree_top] =
+        new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
     mttkrp_map[seq_tree_top]->operator[](seq_map_init) +=
         (*T)[seq_T] * mat[left_index]->operator[](seq_matrix);
   } else {
@@ -162,11 +162,12 @@ template <typename dtype> void CPDTOptimizer<dtype>::solve_one_mode(int i) {
   // calculating S
   CPOptimizer<dtype>::update_S(ii);
   // calculate gradient
-  this->grad_W[ii]["ij"] =
-      -this->M[ii]->operator[]("ij") + this->W[ii]->operator[]("ik") * this->S["kj"];
+  this->grad_W[ii]["ij"] = -this->M[ii]->operator[]("ij") +
+                           this->W[ii]->operator[]("ik") * this->S["kj"];
 
   spd_solve(*this->M[ii], *this->W[ii], this->S);
-  this->WTW[ii]->operator[]("jk") = this->W[ii]->operator[]("ij") * this->W[ii]->operator[]("ik");
+  this->WTW[ii]->operator[]("jk") =
+      this->W[ii]->operator[]("ij") * this->W[ii]->operator[]("ik");
 }
 
 template <typename dtype> double CPDTOptimizer<dtype>::step_dt() {

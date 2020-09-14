@@ -26,7 +26,7 @@ template <typename dtype> LocalMTTKRP<dtype>::~LocalMTTKRP() {
   }
   free(W_local);
   for (int i = 0; i < this->order; i++) {
-    if (this->cm_reduce[i] != NULL){
+    if (this->cm_reduce[i] != NULL) {
       MPI_Comm_free(this->cm_reduce[i]);
     }
   }
@@ -169,7 +169,8 @@ void LocalMTTKRP<dtype>::distribute_W(int i, Matrix<> **W, Matrix<> **W_local) {
 
     this->W_remap[i]->operator[]("ij") = W[i]->operator[]("ij");
     arrs[i] = (dtype *)this->W_remap[i]->data;
-    cmdt.bcast(this->W_remap[i]->data, this->W_remap[i]->size, V->sr->mdtype(), 0);
+    cmdt.bcast(this->W_remap[i]->data, this->W_remap[i]->size, V->sr->mdtype(),
+               0);
   }
   // update the W_local
   IASSERT(this->V->pad_edge_len[i] == this->W_remap[i]->pad_edge_len[0]);
@@ -193,7 +194,8 @@ void LocalMTTKRP<dtype>::construct_W_remap(Matrix<> **W, Matrix<> **W_remap) {
         char nonastr[2];
         nonastr[0] = 'a' - 1;
         nonastr[1] = 'a' - 2;
-        W_remap[i] = new Matrix<dtype>(W[i]->nrow, this->rank, nonastr, par[par_idx],
+        W_remap[i] =
+            new Matrix<dtype>(W[i]->nrow, this->rank, nonastr, par[par_idx],
                               Idx_Partition(), 0, *this->world, *V->sr);
       }
     } else {
@@ -278,7 +280,8 @@ void LocalMTTKRP<dtype>::post_mttkrp_reduce(int mode) {
     int64_t sz = this->mttkrp[mode]->size;
     if (*this->cmr_reduce[mode] == 0) {
       MPI_Reduce(MPI_IN_PLACE, this->arrs_mttkrp[mode], sz,
-                 this->V->sr->mdtype(), this->V->sr->addmop(), 0, *this->cm_reduce[mode]);
+                 this->V->sr->mdtype(), this->V->sr->addmop(), 0,
+                 *this->cm_reduce[mode]);
     } else {
       MPI_Reduce(this->arrs_mttkrp[mode], NULL, sz, this->V->sr->mdtype(),
                  this->V->sr->addmop(), 0, *this->cm_reduce[mode]);
@@ -294,12 +297,13 @@ void LocalMTTKRP<dtype>::construct_mttkrp_reduce_communicators() {
   Timer t_mttkrp_red_prep("MTTKRP_Reduce_prep");
   t_mttkrp_red_prep.start();
 
-  for (int mode=0; mode<this->V->order; mode ++) {
+  for (int mode = 0; mode < this->V->order; mode++) {
     int red_len = this->world->np / this->phys_phase[mode];
     if (red_len > 1) {
       int jr = this->V->edge_map[mode].calc_phys_rank(this->V->topo);
       this->cm_reduce[mode] = new MPI_Comm();
-      MPI_Comm_split(this->world->comm, jr, this->world->rank, this->cm_reduce[mode]);
+      MPI_Comm_split(this->world->comm, jr, this->world->rank,
+                     this->cm_reduce[mode]);
       this->cmr_reduce[mode] = new int();
       MPI_Comm_rank(*this->cm_reduce[mode], this->cmr_reduce[mode]);
     }
