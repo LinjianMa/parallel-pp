@@ -38,7 +38,7 @@ public:
   void initialize_tree(World *dw, Tensor<> *T, Matrix<> **mat,
                        Matrix<> **deltaW);
 
-  Matrix<> mttkrp_approx(int i, Matrix<> **dW);
+  void mttkrp_approx(int i, Matrix<> **dW, Matrix<> *N);
 
   double tol_restart_dt;
   bool restart;
@@ -49,6 +49,7 @@ public:
   map<string, vector<int>> name_index_map;
 
   Matrix<> **dW;
+  Matrix<> **update_W = NULL;
 };
 
 #include "cp_pp_optimizer.cxx"

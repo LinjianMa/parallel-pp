@@ -11,6 +11,7 @@ CPPPLocalOptimizer<dtype>::CPPPLocalOptimizer(int order, int r, World &dw,
       CPDTLocalOptimizer<dtype>(order, r, dw, false), CPDTOptimizer<dtype>(
                                                           order, r, dw, false) {
   this->dW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
+  this->update_W = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
 }
 
 template <typename dtype> CPPPLocalOptimizer<dtype>::~CPPPLocalOptimizer() {
@@ -28,7 +29,7 @@ void CPPPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
   CPDTLocalOptimizer<dtype>::configure(input, mat, grad, lambda);
   for (int i = 0; i < this->order; i++) {
     this->dW[i] = new Matrix<>(this->W[i]->nrow, this->rank, *this->world);
-    this->dW[i]->operator[]("ij") = 0.;
+    this->update_W[i] = new Matrix<>(this->W[i]->nrow, this->rank, *this->world);
   }
   for (int i = 0; i < this->order; i++) {
     int64_t pad_local_col =
@@ -87,17 +88,14 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
   for (int i = 0; i < this->order; i++) {
     CPOptimizer<dtype>::update_S(i);
 
-    Matrix<> N = CPPPOptimizer<dtype>::mttkrp_approx(i, this->dW_local);
-    this->local_mttkrp->mttkrp_local_mat[i]->operator[]("ij") = N["ij"];
+    CPPPOptimizer<dtype>::mttkrp_approx(i, this->dW_local, this->local_mttkrp->mttkrp_local_mat[i]);
     this->local_mttkrp->post_mttkrp_reduce(i);
 
     this->M[i]->operator[]("ij") = this->local_mttkrp->mttkrp[i]->operator[]("ij");
-    Matrix<> update_W = Matrix<>(*this->W[i]);
+    spd_solve(*this->M[i], *this->update_W[i], this->S);
 
-    spd_solve(*this->M[i], update_W, this->S);
-
-    this->dW[i]->operator[]("ij") += update_W["ij"] - this->W[i]->operator[]("ij");
-    this->W[i]->operator[]("ij") = update_W["ij"];
+    this->dW[i]->operator[]("ij") += this->update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
+    this->W[i]->operator[]("ij") = this->update_W[i]->operator[]("ij");
 
     this->local_mttkrp->distribute_W(i, this->local_mttkrp->W,
                                      this->local_mttkrp->W_local);
