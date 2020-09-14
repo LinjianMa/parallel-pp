@@ -11,7 +11,6 @@ CPPPLocalOptimizer<dtype>::CPPPLocalOptimizer(int order, int r, World &dw,
       CPDTLocalOptimizer<dtype>(order, r, dw, false), CPDTOptimizer<dtype>(
                                                           order, r, dw, false) {
   this->dW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
-  this->update_W = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
 }
 
 template <typename dtype> CPPPLocalOptimizer<dtype>::~CPPPLocalOptimizer() {
@@ -93,6 +92,7 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
 
     this->M[i]->operator[]("ij") = this->local_mttkrp->mttkrp[i]->operator[]("ij");
     spd_solve(*this->M[i], *this->update_W[i], this->S);
+    this->WTW[i]->operator[]("jk") = this->update_W[i]->operator[]("ij") * this->update_W[i]->operator[]("ik");
 
     this->dW[i]->operator[]("ij") += this->update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
     this->W[i]->operator[]("ij") = this->update_W[i]->operator[]("ij");

@@ -34,6 +34,7 @@ public:
    * W[0]["ki"]*W[0]["kj"]*W[1]["ki"]*W[1]["kj"]*W[2]["ki"]*W[2]["kj"]*W[3]["ki"]*...
    */
   Matrix<dtype> S;
+  Matrix<dtype> **WTW = NULL;
   Matrix<dtype> regul;
 };
 

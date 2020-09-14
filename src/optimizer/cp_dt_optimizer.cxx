@@ -166,6 +166,7 @@ template <typename dtype> void CPDTOptimizer<dtype>::solve_one_mode(int i) {
       -this->M[ii]->operator[]("ij") + this->W[ii]->operator[]("ik") * this->S["kj"];
 
   spd_solve(*this->M[ii], *this->W[ii], this->S);
+  this->WTW[ii]->operator[]("jk") = this->W[ii]->operator[]("ij") * this->W[ii]->operator[]("ik");
 }
 
 template <typename dtype> double CPDTOptimizer<dtype>::step_dt() {

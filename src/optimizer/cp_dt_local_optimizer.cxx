@@ -71,6 +71,7 @@ void CPDTLocalOptimizer<dtype>::solve_one_mode(int i) {
 
   this->M[ii]->operator[]("ij") = local_mttkrp->mttkrp[ii]->operator[]("ij");
   spd_solve(*this->M[ii], *this->W[ii], this->S);
+  this->WTW[ii]->operator[]("jk") = this->W[ii]->operator[]("ij") * this->W[ii]->operator[]("ik");
 
   local_mttkrp->distribute_W(ii, local_mttkrp->W, local_mttkrp->W_local);
   t_DT_solve_one_mode.stop();

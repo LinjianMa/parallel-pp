@@ -15,7 +15,12 @@ CPPPOptimizer<dtype>::CPPPOptimizer(int order, int r, World &dw,
 
 template <typename dtype> CPPPOptimizer<dtype>::~CPPPOptimizer() {
   // delete S;
+  for (int i = 0; i < this->order; i++) {
+    delete this->dW[i];
+    delete this->update_W[i];
+  }
   free(this->dW);
+  free(this->update_W);
 }
 
 template <typename dtype>
@@ -108,6 +113,8 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_pp() {
     mttkrp_approx(i, this->dW, this->M[i]);
     CPOptimizer<dtype>::update_S(i);
     spd_solve(*this->M[i], *this->update_W[i], this->S);
+    this->WTW[i]->operator[]("jk") = this->update_W[i]->operator[]("ij") * this->update_W[i]->operator[]("ik");
+
     this->dW[i]->operator[]("ij") += update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
     this->W[i]->operator[]("ij") = update_W[i]->operator[]("ij");
   }

@@ -53,7 +53,8 @@ template <typename dtype> double CPLocalOptimizer<dtype>::step() {
 
     // subproblem M=W*S
     this->M[i]->operator[]("ij") = local_mttkrp->mttkrp[i]->operator[]("ij");
-    cholesky_solve(*this->M[i], *(this->W[i]), this->S);
+    spd_solve(*this->M[i], *this->W[i], this->S);
+    this->WTW[i]->operator[]("jk") = this->W[i]->operator[]("ij") * this->W[i]->operator[]("ik");
 
     local_mttkrp->distribute_W(i, local_mttkrp->W, local_mttkrp->W_local);
   }
