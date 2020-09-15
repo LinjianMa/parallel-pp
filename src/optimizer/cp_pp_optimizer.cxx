@@ -108,7 +108,7 @@ void CPPPOptimizer<dtype>::mttkrp_approx(int i, Matrix<> **dW, Matrix<> *N) {
 }
 
 template <typename dtype>
-void CPPPOptimizer<dtype>::mttkrp_approx_second_correction(int i) {
+void CPPPOptimizer<dtype>::mttkrp_approx_second_correction(int i, Matrix<> &S, Matrix<> &S_temp, Matrix<> **WTW, Matrix<> **WTdW) {
   Timer t_pp_mttkrp_approx("pp_mttkrp_approx_second_correction");
   t_pp_mttkrp_approx.start();
 
@@ -118,22 +118,20 @@ void CPPPOptimizer<dtype>::mttkrp_approx_second_correction(int i) {
       j_list.push_back(j);
     }
   }
-  this->S["ij"] = 0.;
-  Matrix<> S_temp = Matrix<>(this->rank, this->rank, *this->world);
+  S["ij"] = 0.;
   vector<vector<int>> dW_indices_list = subsets(j_list, 2);
   for (auto const &dW_indices : dW_indices_list) {
     S_temp["ij"] = 1.;
     for (auto const &j : j_list) {
       if (find(dW_indices.begin(), dW_indices.end(), j) != dW_indices.end()) {
-        S_temp["ij"] = S_temp["ij"] * this->WTdW[j]->operator[]("ij");
+        S_temp["ij"] = S_temp["ij"] * WTdW[j]->operator[]("ij");
       }
        else {
-        S_temp["ij"] = S_temp["ij"] * this->WTW[j]->operator[]("ij");
+        S_temp["ij"] = S_temp["ij"] * WTW[j]->operator[]("ij");
       }
     }
-    this->S["ij"] += S_temp["ij"];
+    S["ij"] += S_temp["ij"];
   }
-  this->M[i]->operator[]("ij") += this->W[i]->operator[]("ik") * this->S["kj"];
 
   t_pp_mttkrp_approx.stop();
 }
@@ -148,7 +146,9 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_pp() {
 
   for (int i = 0; i < this->order; i++) {
     mttkrp_approx(i, this->dW, this->M[i]);
-    mttkrp_approx_second_correction(i);
+    Matrix<> S_temp = Matrix<>(this->rank, this->rank, *this->world);
+    mttkrp_approx_second_correction(i, this->S, S_temp, this->WTW, this->WTdW);
+    this->M[i]->operator[]("ij") += this->W[i]->operator[]("ik") * this->S["kj"];
 
     CPOptimizer<dtype>::update_S(i);
     spd_solve(*this->M[i], *this->update_W[i], this->S);

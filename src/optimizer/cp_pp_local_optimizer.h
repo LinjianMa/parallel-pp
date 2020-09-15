@@ -25,7 +25,11 @@ public:
   void configure(Tensor<dtype> *input, Matrix<dtype> **mat, Matrix<dtype> *grad,
                  double lambda);
 
-  Matrix<> **dW_local;
+  Matrix<> **dW_local = NULL;
+  Matrix<> S_local;
+  Matrix<> S_local_temp;
+  Matrix<> **WTW_local = NULL;
+  Matrix<> **WTdW_local = NULL;
 };
 
 #include "cp_pp_local_optimizer.cxx"

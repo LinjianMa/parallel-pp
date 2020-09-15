@@ -11,13 +11,19 @@ CPPPLocalOptimizer<dtype>::CPPPLocalOptimizer(int order, int r, World &dw,
       CPDTLocalOptimizer<dtype>(order, r, dw, false), CPDTOptimizer<dtype>(
                                                           order, r, dw, false) {
   this->dW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
+  this->WTW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
+  this->WTdW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
 }
 
 template <typename dtype> CPPPLocalOptimizer<dtype>::~CPPPLocalOptimizer() {
   for (int i = 0; i < this->order; i++) {
     delete this->dW_local[i];
+    delete this->WTW_local[i];
+    delete this->WTdW_local[i];
   }
   free(this->dW_local);
+  free(this->WTW_local);
+  free(this->WTdW_local);
 }
 
 template <typename dtype>
@@ -40,6 +46,31 @@ void CPPPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
   }
   for (int i = 0; i < this->order; i++) {
     this->local_mttkrp->distribute_W(i, this->dW, this->dW_local);
+  }
+  // S_local, S_local_temp, WTW_local, WTdW_local
+  int phys_phase[2];
+  phys_phase[0] = this->S.edge_map[0].calc_phys_phase();
+  phys_phase[1] = this->S.edge_map[1].calc_phys_phase();
+  for (int i = 0; i < this->order; i++) {
+    IASSERT(phys_phase[0] == this->WTW[i]->edge_map[0].calc_phys_phase());
+    IASSERT(phys_phase[1] == this->WTW[i]->edge_map[1].calc_phys_phase());
+    IASSERT(phys_phase[0] == this->WTdW[i]->edge_map[0].calc_phys_phase());
+    IASSERT(phys_phase[1] == this->WTdW[i]->edge_map[1].calc_phys_phase());
+  }
+  int64_t pad_row = int(this->S.pad_edge_len[0] / phys_phase[0]);
+  int64_t pad_col = int(this->S.pad_edge_len[1] / phys_phase[1]);
+  int64_t num_elements = pad_row * pad_col;
+
+  S_local = Matrix<>(pad_row, pad_col, *this->local_mttkrp->sworld);
+  memcpy(S_local.data, this->S.data, sizeof(dtype) * num_elements);
+
+  S_local_temp = Matrix<>(pad_row, pad_col, *this->local_mttkrp->sworld);
+  for (int i = 0; i < this->order; i++) {
+    WTW_local[i] = new Matrix<>(pad_row, pad_col, *this->local_mttkrp->sworld);
+    WTdW_local[i] = new Matrix<>(pad_row, pad_col, *this->local_mttkrp->sworld);
+
+    memcpy(WTW_local[i]->data, this->WTW[i]->data, sizeof(dtype) * num_elements);
+    memcpy(WTdW_local[i]->data, this->WTdW[i]->data, sizeof(dtype) * num_elements);
   }
 }
 
@@ -92,7 +123,10 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
     this->local_mttkrp->post_mttkrp_reduce(i);
     this->M[i]->operator[]("ij") =
         this->local_mttkrp->mttkrp[i]->operator[]("ij");
-    CPPPOptimizer<dtype>::mttkrp_approx_second_correction(i);
+    // second order correction
+    CPPPOptimizer<dtype>::mttkrp_approx_second_correction(i, this->S_local, this->S_local_temp, this->WTW_local, this->WTdW_local);
+    memcpy(this->S.data, this->S_local.data, sizeof(dtype) * S_local.ncol * S_local.nrow);
+    this->M[i]->operator[]("ij") += this->W[i]->operator[]("ik") * this->S["kj"];
 
     CPOptimizer<dtype>::update_S(i);
     spd_solve(*this->M[i], *this->update_W[i], this->S);
@@ -105,6 +139,8 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
 
     this->WTdW[i]->operator[]("jk") = this->W[i]->operator[]("ij") *
                                       this->dW[i]->operator[]("ik");
+    memcpy(WTW_local[i]->data, this->WTW[i]->data, sizeof(dtype) * WTW_local[i]->ncol * WTW_local[i]->nrow);
+    memcpy(WTdW_local[i]->data, this->WTdW[i]->data, sizeof(dtype) * WTdW_local[i]->ncol * WTdW_local[i]->nrow);
 
     this->local_mttkrp->distribute_W(i, this->local_mttkrp->W,
                                      this->local_mttkrp->W_local);
@@ -145,6 +181,10 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step() {
           this->local_mttkrp->sworld, this->local_mttkrp->V_local,
           this->local_mttkrp->W_local, this->dW_local);
       this->reinitialize_tree = false;
+      for (int i = 0; i < this->order; i++) {
+        memcpy(WTW_local[i]->data, this->WTW[i]->data, sizeof(dtype) * WTW_local[i]->ncol * WTW_local[i]->nrow);
+        memcpy(WTdW_local[i]->data, this->WTdW[i]->data, sizeof(dtype) * WTdW_local[i]->ncol * WTdW_local[i]->nrow);
+      }
     }
     num_sweep = step_pp();
   } else {
