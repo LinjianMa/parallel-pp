@@ -109,6 +109,25 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
   return 1.;
 }
 
+template <typename dtype> void CPPPLocalOptimizer<dtype>::pp_update_after_solve(int i) {
+  Timer t_localpp_step_pp("pp_update_after_solve");
+  t_localpp_step_pp.start();
+
+    this->WTW[i]->operator[]("jk") = this->update_W[i]->operator[]("ij") *
+                                     this->update_W[i]->operator[]("ik");
+
+    // TODO: these two lines can be faster
+    this->dW[i]->operator[]("ij") +=
+        this->update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
+    this->W[i]->operator[]("ij") = this->update_W[i]->operator[]("ij");
+
+    this->WTdW[i]->operator[]("jk") = this->W[i]->operator[]("ij") *
+                                      this->dW[i]->operator[]("ik");
+    memcpy(WTW_local[i]->data, this->WTW[i]->data, sizeof(dtype) * WTW_local[i]->ncol * WTW_local[i]->nrow);
+    memcpy(WTdW_local[i]->data, this->WTdW[i]->data, sizeof(dtype) * WTdW_local[i]->ncol * WTdW_local[i]->nrow);
+  t_localpp_step_pp.stop();
+}
+
 template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
   Timer t_localpp_step_pp("localpp_step_pp");
   t_localpp_step_pp.start();
@@ -130,17 +149,7 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
 
     CPOptimizer<dtype>::update_S(i);
     spd_solve(*this->M[i], *this->update_W[i], this->S);
-    this->WTW[i]->operator[]("jk") = this->update_W[i]->operator[]("ij") *
-                                     this->update_W[i]->operator[]("ik");
-
-    this->dW[i]->operator[]("ij") +=
-        this->update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
-    this->W[i]->operator[]("ij") = this->update_W[i]->operator[]("ij");
-
-    this->WTdW[i]->operator[]("jk") = this->W[i]->operator[]("ij") *
-                                      this->dW[i]->operator[]("ik");
-    memcpy(WTW_local[i]->data, this->WTW[i]->data, sizeof(dtype) * WTW_local[i]->ncol * WTW_local[i]->nrow);
-    memcpy(WTdW_local[i]->data, this->WTdW[i]->data, sizeof(dtype) * WTdW_local[i]->ncol * WTdW_local[i]->nrow);
+    pp_update_after_solve(i); 
 
     this->local_mttkrp->distribute_W(i, this->local_mttkrp->W,
                                      this->local_mttkrp->W_local);

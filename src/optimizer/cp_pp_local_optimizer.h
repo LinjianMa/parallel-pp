@@ -22,6 +22,8 @@ public:
 
   double step_pp();
 
+  void pp_update_after_solve(int i);
+
   void configure(Tensor<dtype> *input, Matrix<dtype> **mat, Matrix<dtype> *grad,
                  double lambda);
 
