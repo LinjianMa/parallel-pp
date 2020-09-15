@@ -1,6 +1,32 @@
 #include "common.h"
 //#define ERR_REPORT
 
+void subsetsUtil(vector<int>& A, vector<vector<int> >& res, 
+                 vector<int>& subset, int index, int min_length) {
+    if (subset.size() >= min_length) {
+      res.push_back(subset);
+    }
+    for (int i = index; i < A.size(); i++) {
+        // include the A[i] in subset.
+        subset.push_back(A[i]);
+        // move onto the next element.
+        subsetsUtil(A, res, subset, i+1, min_length);
+        // exclude the A[i] from subset and triggers backtracking.
+        subset.pop_back();
+    }
+    return;
+}
+  
+// below function returns the subsets of vector A.
+vector<vector<int>> subsets(vector<int>& A, int min_length) {
+  vector<int> subset;
+  vector<vector<int>> res;
+  // keeps track of current element in vector A;
+  int index = 0;
+  subsetsUtil(A, res, subset, index, min_length);
+  return res; 
+}
+
 void vec2str(vector<int> vec, string &seq_out) {
   char seq[vec.size() + 2];
   seq[vec.size() + 1] = '\0';

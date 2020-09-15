@@ -30,6 +30,7 @@ void CPPPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
     this->dW[i] = new Matrix<>(this->W[i]->nrow, this->rank, *this->world);
     this->update_W[i] =
         new Matrix<>(this->W[i]->nrow, this->rank, *this->world);
+    this->WTdW[i] = new Matrix<>(this->rank, this->rank, *this->world);
   }
   for (int i = 0; i < this->order; i++) {
     int64_t pad_local_col =
@@ -86,14 +87,14 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
   }
 
   for (int i = 0; i < this->order; i++) {
-    CPOptimizer<dtype>::update_S(i);
-
     CPPPOptimizer<dtype>::mttkrp_approx(
         i, this->dW_local, this->local_mttkrp->mttkrp_local_mat[i]);
     this->local_mttkrp->post_mttkrp_reduce(i);
-
     this->M[i]->operator[]("ij") =
         this->local_mttkrp->mttkrp[i]->operator[]("ij");
+    CPPPOptimizer<dtype>::mttkrp_approx_second_correction(i);
+
+    CPOptimizer<dtype>::update_S(i);
     spd_solve(*this->M[i], *this->update_W[i], this->S);
     this->WTW[i]->operator[]("jk") = this->update_W[i]->operator[]("ij") *
                                      this->update_W[i]->operator[]("ik");
@@ -101,6 +102,9 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
     this->dW[i]->operator[]("ij") +=
         this->update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
     this->W[i]->operator[]("ij") = this->update_W[i]->operator[]("ij");
+
+    this->WTdW[i]->operator[]("jk") = this->W[i]->operator[]("ij") *
+                                      this->dW[i]->operator[]("ik");
 
     this->local_mttkrp->distribute_W(i, this->local_mttkrp->W,
                                      this->local_mttkrp->W_local);

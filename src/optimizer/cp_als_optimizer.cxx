@@ -12,7 +12,7 @@ CPOptimizer<dtype>::CPOptimizer(int order, int r, World &dw) {
   this->rank = r;
 
   // M and S
-  S = Matrix<>(r, r);
+  S = Matrix<>(r, r, *this->world);
   M = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   WTW = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
 }

@@ -40,6 +40,8 @@ public:
 
   void mttkrp_approx(int i, Matrix<> **dW, Matrix<> *N);
 
+  void mttkrp_approx_second_correction(int i);
+
   double tol_restart_dt;
   bool restart;
   bool pp = false;
@@ -50,6 +52,7 @@ public:
 
   Matrix<> **dW;
   Matrix<> **update_W = NULL;
+  Matrix<dtype> **WTdW = NULL;
 };
 
 #include "cp_pp_optimizer.cxx"
