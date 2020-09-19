@@ -1,5 +1,7 @@
 run
 test
+transpose
+*.csv
 .Rhistory
 .DS_Store
 # Byte-compiled / optimized / DLL files

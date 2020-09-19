@@ -53,6 +53,7 @@ void TEST_CPD(World &dw) {
 
   Tensor<> *V = new Tensor<>(3, lens, dw);
   V->fill_random(0, 1);
+  double Vnorm = V->norm2();
 
   Matrix<> **W = (Matrix<> **)malloc(3 * sizeof(Matrix<> *));
   Matrix<> **W_local = (Matrix<> **)malloc(3 * sizeof(Matrix<> *));
@@ -86,28 +87,28 @@ void TEST_CPD(World &dw) {
   ofstream Plot_File("results/test.csv");
 
   decom.Init(V, W);
-  decom.als(1e-5, 1000, 4, 100, Plot_File);
+  decom.als(1e-5, Vnorm, 1000, 4, 100, Plot_File);
 
   decom_dt.Init(V, W_dt);
-  decom_dt.als(1e-5, 1000, 4, 100, Plot_File);
+  decom_dt.als(1e-5, Vnorm, 1000, 4, 100, Plot_File);
 
   decom_msdt.Init(V, W_msdt);
-  decom_msdt.als(1e-5, 1000, 4, 100, Plot_File);
+  decom_msdt.als(1e-5, Vnorm, 1000, 4, 100, Plot_File);
 
   decom_local.Init(V, W_local);
-  decom_local.als(1e-5, 1000, 4, 100, Plot_File);
+  decom_local.als(1e-5, Vnorm, 1000, 4, 100, Plot_File);
 
   decom_dt_local.Init(V, W_dt_local);
-  decom_dt_local.als(1e-5, 1000, 4, 100, Plot_File);
+  decom_dt_local.als(1e-5, Vnorm, 1000, 4, 100, Plot_File);
 
   decom_msdt_local.Init(V, W_msdt_local);
-  decom_msdt_local.als(1e-5, 1000, 4, 100, Plot_File);
+  decom_msdt_local.als(1e-5, Vnorm, 1000, 4, 100, Plot_File);
 
   decom_pp.Init(V, W_pp);
-  decom_pp.als(1e-5, 1000, 4, 100, Plot_File);
+  decom_pp.als(1e-5, Vnorm, 1000, 4, 100, Plot_File);
 
   decom_pp_local.Init(V, W_pp_local);
-  decom_pp_local.als(1e-5, 1000, 4, 100, Plot_File);
+  decom_pp_local.als(1e-5, Vnorm, 1000, 4, 100, Plot_File);
 
   for (int i = 0; i < V->order; i++) {
     Matrix<> diff = Matrix<>(lens[i], 5, dw);
@@ -168,6 +169,7 @@ void TEST_PP(World &dw) {
 
   Tensor<> *V = new Tensor<>(3, lens, dw);
   V->fill_random(0, 1);
+  double Vnorm = V->norm2();
 
   Matrix<> **W = (Matrix<> **)malloc(3 * sizeof(Matrix<> *));
   Matrix<> **W_pp = (Matrix<> **)malloc(3 * sizeof(Matrix<> *));
@@ -186,13 +188,13 @@ void TEST_PP(World &dw) {
   ofstream Plot_File("results/test.csv");
 
   decom.Init(V, W);
-  decom.als(1e-5, 1000, 2, 100, Plot_File);
+  decom.als(1e-5, Vnorm, 1000, 2, 100, Plot_File);
 
   decom_pp.Init(V, W_pp);
-  decom_pp.als(1e-5, 1000, 2, 100, Plot_File);
+  decom_pp.als(1e-5, Vnorm, 1000, 2, 100, Plot_File);
 
   decom_pp_local.Init(V, W_pp_local);
-  decom_pp_local.als(1e-5, 1000, 2, 100, Plot_File);
+  decom_pp_local.als(1e-5, Vnorm, 1000, 2, 100, Plot_File);
 
   for (int i = 0; i < V->order; i++) {
     Matrix<> diff = Matrix<>(lens[i], 5, dw);
@@ -209,8 +211,8 @@ void TEST_PP(World &dw) {
     }
   }
 
-  decom_pp.als(1e-5, 1000, 2, 100, Plot_File);
-  decom_pp_local.als(1e-5, 1000, 2, 100, Plot_File);
+  decom_pp.als(1e-5, Vnorm, 1000, 2, 100, Plot_File);
+  decom_pp_local.als(1e-5, Vnorm, 1000, 2, 100, Plot_File);
   for (int i = 0; i < V->order; i++) {
     Matrix<> diff = Matrix<>(lens[i], 5, dw);
     diff["ij"] = W_pp_local[i]->operator[]("ij") - W_pp[i]->operator[]("ij");
@@ -236,6 +238,7 @@ void TEST_PP_local(World &dw) {
 
   Tensor<> *V = new Tensor<>(3, lens, dw);
   V->fill_random(0, 1);
+  double Vnorm = V->norm2();
 
   Matrix<> **W_pp = (Matrix<> **)malloc(3 * sizeof(Matrix<> *));
   Matrix<> **W_pp_local = (Matrix<> **)malloc(3 * sizeof(Matrix<> *));
@@ -251,10 +254,10 @@ void TEST_PP_local(World &dw) {
   ofstream Plot_File("results/test.csv");
 
   decom_pp.Init(V, W_pp);
-  decom_pp.als(1e-5, 1000, 10, 100, Plot_File);
+  decom_pp.als(1e-5, Vnorm, 1000, 10, 100, Plot_File);
 
   decom_pp_local.Init(V, W_pp_local);
-  decom_pp_local.als(1e-5, 1000, 10, 100, Plot_File);
+  decom_pp_local.als(1e-5, Vnorm, 1000, 10, 100, Plot_File);
 
   for (int i = 0; i < V->order; i++) {
     Matrix<> diff = Matrix<>(lens[i], 5, dw);

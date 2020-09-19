@@ -361,35 +361,35 @@ int main(int argc, char **argv) {
       }
       CPD<double, CPSimpleOptimizer<double>> decom(dim, lens, R, dw);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
+      decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 1) {
       if (dw.rank == 0) {
         cout << "============CPLocalOptimizer=============" << endl;
       }
       CPD<double, CPLocalOptimizer<double>> decom(dim, lens, R, dw);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
+      decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 2) {
       if (dw.rank == 0) {
         cout << "============CPDTOptimizer=============" << endl;
       }
       CPD<double, CPDTOptimizer<double>> decom(dim, lens, R, dw, use_msdt);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
+      decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 3) {
       if (dw.rank == 0) {
         cout << "============CPDTLocalOptimizer=============" << endl;
       }
       CPD<double, CPDTLocalOptimizer<double>> decom(dim, lens, R, dw, use_msdt);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
+      decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 4) {
       if (dw.rank == 0) {
         cout << "============CPPPOptimizer=============" << endl;
       }
       CPD<double, CPPPOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
+      decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 5) {
       if (dw.rank == 0) {
         cout << "============CPPPLocalOptimizer=============" << endl;
@@ -397,7 +397,7 @@ int main(int argc, char **argv) {
       CPD<double, CPPPLocalOptimizer<double>> decom(dim, lens, R, dw,
                                                     pp_res_tol);
       decom.Init(&V, W);
-      decom.als(tol * Vnorm, timelimit, maxsweep, resprint, Plot_File);
+      decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     }
 
     if (dw.rank == 0) {

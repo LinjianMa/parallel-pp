@@ -110,13 +110,12 @@ template <typename dtype, class Optimizer>
 void CPD<dtype, Optimizer>::update_gradnorm() {
   gradnorm = 0;
   for (int i = 0; i < this->order; i++) {
-    gradnorm += this->grad_W[i].norm2() * this->grad_W[i].norm2();
+    gradnorm += this->grad_W[i].norm2();
   }
-  gradnorm = sqrt(gradnorm);
 }
 
 template <typename dtype, class Optimizer>
-bool CPD<dtype, Optimizer>::als(double tol, double timelimit, int maxsweep,
+bool CPD<dtype, Optimizer>::als(double tol, double Vnorm, double timelimit, int maxsweep,
                                 int resprint, ofstream &Plot_File, bool bench) {
 
   Timer_epoch tALS("ALS");
@@ -129,10 +128,11 @@ bool CPD<dtype, Optimizer>::als(double tol, double timelimit, int maxsweep,
   int iters = 0;
   double sweeps = 0;
   double diffnorm_V = 1000.;
+  double fitness = 0.;
 
   if (bench == false) {
     if (dw->rank == 0)
-      Plot_File << "[dim],[iter],[gradnorm],[tol],[pp_update],[diffV],[dtime]"
+      Plot_File << "[dim],[iter],[gradnorm],[tol],[pp_update],[fitness],[dtime]"
                 << "\n"; // Headings for file
   }
 
@@ -143,11 +143,17 @@ bool CPD<dtype, Optimizer>::als(double tol, double timelimit, int maxsweep,
       double st_time1 = MPI_Wtime();
       update_gradnorm();
       // residual
-      Tensor<dtype> V_build;
-      build_V(V_build, this->W, this->order, *dw);
-      Tensor<dtype> diff_V = *(this->V);
-      diff_V[seq_V] = (*this->V)[seq_V] - V_build[seq_V];
-      diffnorm_V = diff_V.norm2();
+      if (sweeps == 0) {
+        fitness = 0.;
+      } else {
+        this->optimizer->update_S_residual_calc();
+        double Wnorms = sqrt(this->optimizer->S.reduce(CTF::OP_SUM));
+        Matrix<> temp = Matrix<>(this->size[this->order - 1], this->rank[this->order - 1]);
+        temp["ij"] = this->optimizer->M[this->order - 1]->operator[]("ij") * this->optimizer->W[this->order - 1]->operator[]("ij");
+        double T_W_inner = temp.reduce(CTF::OP_SUM);
+        diffnorm_V = sqrt(Vnorm * Vnorm + Wnorms * Wnorms - 2. * T_W_inner);
+        fitness = 1. - diffnorm_V / Vnorm;
+      }
       // record time
       st_time += MPI_Wtime() - st_time1;
       double dtime = MPI_Wtime() - st_time;
@@ -156,10 +162,10 @@ bool CPD<dtype, Optimizer>::als(double tol, double timelimit, int maxsweep,
           cout << "  [dim]=  " << (this->V)->lens[0]
                << "  [sweeps]=  " << sweeps << "  [gradnorm]  " << gradnorm
                << "  [tol]  " << tol << "  [pp_update]  " << 0
-               << "  [residual]  " << diffnorm_V << "  [dtime]  " << dtime
+               << "  [fitness]  " << fitness << "  [dtime]  " << dtime
                << "\n";
           Plot_File << (this->V)->lens[0] << "," << sweeps << "," << gradnorm
-                    << "," << tol << "," << 0 << "," << diffnorm_V << ","
+                    << "," << tol << "," << 0 << "," << fitness << ","
                     << dtime << "\n";
           // flush the contents to csv
           if (iters % 100 == 0 && iters != 0) {

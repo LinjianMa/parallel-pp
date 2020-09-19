@@ -40,6 +40,13 @@ template <typename dtype> void CPOptimizer<dtype>::update_S(int update_index) {
   t_hadamard_prod.stop();
 }
 
+template <typename dtype> void CPOptimizer<dtype>::update_S_residual_calc() {
+  S["ij"] = 1.;
+  for (int i = 0; i < order; i++) {
+    S["ij"] = S["ij"] * WTW[i]->operator[]("ij");
+  }
+}
+
 template <typename dtype>
 void CPOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> **mat,
                                    Matrix<dtype> *grad, double lambda) {

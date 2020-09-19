@@ -54,7 +54,7 @@ void CPDTLocalOptimizer<dtype>::solve_one_mode(int i) {
   string mat_seq;
   vec2str(mat_index, mat_seq);
 
-  if (this->mttkrp_map.find(mat_seq) == this->mttkrp_map.end()) {
+  if (this->mttkrp_exist_map.find(mat_seq) == this->mttkrp_exist_map.end()) {
     CPDTOptimizer<dtype>::mttkrp_map_DT(mat_seq, local_mttkrp->sworld,
                                         local_mttkrp->W_local,
                                         local_mttkrp->V_local);

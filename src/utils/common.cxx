@@ -155,64 +155,31 @@ void mttkrp_map_DT(map<string, Tensor<>> &mttkrp_map,
 void build_V(Tensor<> &V, Matrix<> **W, int order, World &dw) {
   Timer tbuild_V("build_V");
   tbuild_V.start();
-  char chars[] = {'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
-                  's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '\0'};
-  // int lens_V[2];
-  // lens_V[0] = W[0].nrow;
-  // lens_V[1] = W[0].ncol;
-  V = *W[0];
-  char seq_W[3] = {'i', '*', '\0'};
-  // char seq = {'i','*','\0'};
-  for (int i = 1; i < order - 1; i++) {
-    // build V_temp
-    int lens_V[i + 2];
-    for (int j = 0; j < i + 1; j++) {
-      lens_V[j] = W[j]->nrow;
-    }
-    lens_V[i + 1] = W[0]->ncol;
-    Tensor<> V_temp = Tensor<>(i + 2, lens_V, dw);
-    // seq_temp
-    char seq_temp[i + 3];
-    seq_temp[i + 2] = '\0';
-    seq_temp[i + 1] = '*';
-    for (int j = 0; j < i + 1; j++) {
-      seq_temp[j] = chars[j];
-    }
-    // seq
-    char seq[i + 2];
-    seq[i + 1] = '\0';
-    seq[i] = '*';
-    for (int j = 0; j < i; j++) {
-      seq[j] = chars[j];
-    }
-    // seq_W
-    seq_W[0] = chars[i];
-    V_temp[seq_temp] = V[seq] * W[i]->operator[](seq_W);
-    V = V_temp;
-    // char seq[i+3];
-    // for (int j=0; j<i+3; j++) {
-    //  seq[j] = seq_temp[j];
-    // }
-  }
+
   // build V_temp
   int lens_V[order];
   for (int j = 0; j < order; j++) {
     lens_V[j] = W[j]->nrow;
   }
-  Tensor<> V_temp = Tensor<>(order, lens_V, dw);
-  char seq_temp[order + 1];
-  char seq[order + 2];
-  seq_temp[order] = '\0';
-  seq_temp[order] = '\0';
-  for (int j = 0; j < order; j++) {
-    seq_temp[j] = chars[j];
-    seq[j] = chars[j];
-  }
-  seq[order - 1] = '*';
-  seq_W[0] = chars[order - 1];
+  V = Tensor<>(order, lens_V, dw);
 
-  V_temp[seq_temp] = V[seq] * W[order - 1]->operator[](seq_W);
-  V = V_temp;
+  if (order == 3) {
+    V["abc"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"];
+  } else if (order == 4) {
+    V["abcd"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"];
+  } else if (order == 5) {
+    V["abcde"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"];
+  } else if (order == 6) {
+    V["abcdef"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"];
+  } else if (order == 7) {
+    V["abcdefg"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] * (*W[6])["g*"];
+  } else if (order == 8) {
+    V["abcdefgh"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] * (*W[6])["g*"] * (*W[7])["h*"];
+  } else if (order == 9) {
+    V["abcdefghi"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] * (*W[6])["g*"] * (*W[7])["h*"] * (*W[8])["i*"];
+  } else if (order == 10) {
+    V["abcdefghij"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] * (*W[6])["g*"] * (*W[7])["h*"] * (*W[8])["i*"] * (*W[9])["j*"];
+  }
   tbuild_V.stop();
 }
 

@@ -37,7 +37,7 @@ public:
    *  tol: tolerance for a relative stopping condition
    *  timelimit, maxiter: limit of time and iterations
    */
-  bool als(double tol, double timelimit, int maxsweep, int resprint,
+  bool als(double tol, double Vnorm, double timelimit, int maxsweep, int resprint,
            ofstream &Plot_File, bool bench = false);
 
   char seq_V[100];

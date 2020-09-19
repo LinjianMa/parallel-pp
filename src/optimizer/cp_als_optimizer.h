@@ -17,6 +17,8 @@ public:
 
   void update_S(int update_index);
 
+  void update_S_residual_calc();
+
   int order;
   int rank;
   // V: input tensor
