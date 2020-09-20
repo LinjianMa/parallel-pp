@@ -30,6 +30,8 @@ public:
 
   void initialize_tree(Matrix<> **mat);
 
+  void construct_pp_operator_indices();
+
   int order;
   World *world;
 
@@ -44,6 +46,8 @@ public:
 
   vector<int> fulllist = {};
   World dw;
+
+  vector<vector<int>> pp_operator_indices = {};
 };
 
 #endif

@@ -14,6 +14,7 @@ PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T) {
     this->fulllist.push_back(i);
   }
   dw = World();
+  construct_pp_operator_indices();
 }
 
 PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T,
@@ -32,9 +33,21 @@ PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T,
     this->fulllist.push_back(i);
   }
   World dw();
+  construct_pp_operator_indices();
 }
 
 PPDimensionTree::~PPDimensionTree() {}
+
+void PPDimensionTree::construct_pp_operator_indices() {
+  for (int ii = 0; ii < this->order; ii++)
+    for (int jj = ii + 1; jj < this->order; jj++) {
+      vector<int> nodeindex = {jj, ii};
+      if (jj - ii < ii + this->order - jj) {
+        nodeindex = {ii, jj};
+      }
+      this->pp_operator_indices.push_back(nodeindex);
+    }
+}
 
 string PPDimensionTree::get_nodename(vector<int> nodeindex) {
   /*
@@ -93,12 +106,29 @@ void PPDimensionTree::get_parentnode(vector<int> nodeindex,
                                      string &parent_nodename,
                                      vector<int> &parent_index,
                                      int &contract_index) {
+  if (nodeindex.size() == 1) {
+    for (auto const &index : this->pp_operator_indices) {
+      if (nodeindex[0] == index[0] || nodeindex[0] == index[1]) {
+        parent_index = index;
+        parent_nodename = get_nodename(parent_index);
+        contract_index = index[0];
+        if (nodeindex[0] == index[0]) {
+          contract_index = index[1];
+        }
+        return;
+      }
+    }
+  }
+
   vector<int> comp_index(this->order);
   vector<int>::iterator it;
 
+  vector<int> sort_nodeindex = nodeindex;
+  sort(sort_nodeindex.begin(), sort_nodeindex.end());
+
   // comp_index = np.setdiff1d(fulllist, nodeindex)
-  it = set_difference(fulllist.begin(), fulllist.end(), nodeindex.begin(),
-                      nodeindex.end(), comp_index.begin());
+  it = set_difference(fulllist.begin(), fulllist.end(), sort_nodeindex.begin(),
+                      sort_nodeindex.end(), comp_index.begin());
   comp_index.resize(it - comp_index.begin());
 
   if (comp_index.size() == 1 && this->use_transpose_T == true) {
@@ -122,6 +152,11 @@ void PPDimensionTree::initialize_treenode(vector<int> nodeindex, Matrix<> **mat)
   t_pp_initialize_treenode.start();
 
   string nodename = get_nodename(nodeindex);
+
+  if (dw.rank == 0) {
+    cout << "nodename is: " << nodename << endl;
+  }
+
   string parent_nodename;
   vector<int> parent_nodeindex(this->order);
   int contract_index;
@@ -190,11 +225,9 @@ void PPDimensionTree::initialize_tree(Matrix<> **mat) {
   this->name_index_map.clear();
   initialize_tree_root();
 
-  for (int ii = 0; ii < this->order; ii++)
-    for (int jj = ii + 1; jj < this->order; jj++) {
-      vector<int> nodeindex = {ii, jj};
+  for (auto const &nodeindex : this->pp_operator_indices) {
       initialize_treenode(nodeindex, mat);
-    }
+  }
   for (int ii = 0; ii < this->order; ii++) {
     vector<int> nodeindex = {ii};
     initialize_treenode(nodeindex, mat);

@@ -90,27 +90,21 @@ void CPPPOptimizer<dtype>::mttkrp_approx(int i, Matrix<> **dW, Matrix<> *N) {
   vector<int> node_index = {i};
   string nodename = ppdt->get_nodename(node_index);
   N->operator[]("ij") = ppdt->name_tensor_map[nodename]->operator[]("ij");
-  for (int j = 0; j < i; j++) {
-    vector<int> parent_index = {j, i};
-    string parentname = ppdt->get_nodename(parent_index);
-    vector<string> einstr = ppdt->get_einstr(node_index, parent_index, j);
-    char const *parent_str = einstr[0].c_str();
-    char const *mat_str = einstr[1].c_str();
-    char const *out_str = einstr[2].c_str();
-    N->operator[](out_str) +=
-        ppdt->name_tensor_map[parentname]->operator[](parent_str) *
-        dW[j]->operator[](mat_str);
-  }
-  for (int j = i + 1; j < this->order; j++) {
-    vector<int> parent_index = {i, j};
-    string parentname = ppdt->get_nodename(parent_index);
-    vector<string> einstr = ppdt->get_einstr(node_index, parent_index, j);
-    char const *parent_str = einstr[0].c_str();
-    char const *mat_str = einstr[1].c_str();
-    char const *out_str = einstr[2].c_str();
-    N->operator[](out_str) +=
-        ppdt->name_tensor_map[parentname]->operator[](parent_str) *
-        dW[j]->operator[](mat_str);
+  for (auto const &parent_index : ppdt->pp_operator_indices) {
+    if (i == parent_index[0] || i == parent_index[1]) {
+      int j = parent_index[0];
+      if (i == parent_index[0]) {
+        j = parent_index[1];
+      }
+      string parentname = ppdt->get_nodename(parent_index);
+      vector<string> einstr = ppdt->get_einstr(node_index, parent_index, j);
+      char const *parent_str = einstr[0].c_str();
+      char const *mat_str = einstr[1].c_str();
+      char const *out_str = einstr[2].c_str();
+      N->operator[](out_str) +=
+          ppdt->name_tensor_map[parentname]->operator[](parent_str) *
+          dW[j]->operator[](mat_str);
+    }
   }
 
   t_pp_mttkrp_approx.stop();
