@@ -1,30 +1,30 @@
 #include "common.h"
 //#define ERR_REPORT
 
-void subsetsUtil(vector<int>& A, vector<vector<int> >& res, 
-                 vector<int>& subset, int index, int min_length) {
-    if (subset.size() >= min_length) {
-      res.push_back(subset);
-    }
-    for (int i = index; i < A.size(); i++) {
-        // include the A[i] in subset.
-        subset.push_back(A[i]);
-        // move onto the next element.
-        subsetsUtil(A, res, subset, i+1, min_length);
-        // exclude the A[i] from subset and triggers backtracking.
-        subset.pop_back();
-    }
-    return;
+void subsetsUtil(vector<int> &A, vector<vector<int>> &res, vector<int> &subset,
+                 int index, int min_length) {
+  if (subset.size() >= min_length) {
+    res.push_back(subset);
+  }
+  for (int i = index; i < A.size(); i++) {
+    // include the A[i] in subset.
+    subset.push_back(A[i]);
+    // move onto the next element.
+    subsetsUtil(A, res, subset, i + 1, min_length);
+    // exclude the A[i] from subset and triggers backtracking.
+    subset.pop_back();
+  }
+  return;
 }
-  
+
 // below function returns the subsets of vector A.
-vector<vector<int>> subsets(vector<int>& A, int min_length) {
+vector<vector<int>> subsets(vector<int> &A, int min_length) {
   vector<int> subset;
   vector<vector<int>> res;
   // keeps track of current element in vector A;
   int index = 0;
   subsetsUtil(A, res, subset, index, min_length);
-  return res; 
+  return res;
 }
 
 void vec2str(vector<int> vec, string &seq_out) {
@@ -168,17 +168,28 @@ void build_V(Tensor<> &V, Matrix<> **W, int order, World &dw) {
   } else if (order == 4) {
     V["abcd"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"];
   } else if (order == 5) {
-    V["abcde"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"];
+    V["abcde"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] *
+                  (*W[3])["d*"] * (*W[4])["e*"];
   } else if (order == 6) {
-    V["abcdef"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"];
+    V["abcdef"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] *
+                   (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"];
   } else if (order == 7) {
-    V["abcdefg"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] * (*W[6])["g*"];
+    V["abcdefg"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] *
+                    (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] *
+                    (*W[6])["g*"];
   } else if (order == 8) {
-    V["abcdefgh"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] * (*W[6])["g*"] * (*W[7])["h*"];
+    V["abcdefgh"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] *
+                     (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] *
+                     (*W[6])["g*"] * (*W[7])["h*"];
   } else if (order == 9) {
-    V["abcdefghi"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] * (*W[6])["g*"] * (*W[7])["h*"] * (*W[8])["i*"];
+    V["abcdefghi"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] *
+                      (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] *
+                      (*W[6])["g*"] * (*W[7])["h*"] * (*W[8])["i*"];
   } else if (order == 10) {
-    V["abcdefghij"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] * (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] * (*W[6])["g*"] * (*W[7])["h*"] * (*W[8])["i*"] * (*W[9])["j*"];
+    V["abcdefghij"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"] *
+                       (*W[3])["d*"] * (*W[4])["e*"] * (*W[5])["f*"] *
+                       (*W[6])["g*"] * (*W[7])["h*"] * (*W[8])["i*"] *
+                       (*W[9])["j*"];
   }
   tbuild_V.stop();
 }

@@ -115,8 +115,9 @@ void CPD<dtype, Optimizer>::update_gradnorm() {
 }
 
 template <typename dtype, class Optimizer>
-bool CPD<dtype, Optimizer>::als(double tol, double Vnorm, double timelimit, int maxsweep,
-                                int resprint, ofstream &Plot_File, bool bench) {
+bool CPD<dtype, Optimizer>::als(double tol, double Vnorm, double timelimit,
+                                int maxsweep, int resprint, ofstream &Plot_File,
+                                bool bench) {
 
   Timer_epoch tALS("ALS");
   tALS.begin();
@@ -148,8 +149,10 @@ bool CPD<dtype, Optimizer>::als(double tol, double Vnorm, double timelimit, int 
       } else {
         this->optimizer->update_S_residual_calc();
         double Wnorms = sqrt(this->optimizer->S.reduce(CTF::OP_SUM));
-        Matrix<> temp = Matrix<>(this->size[this->order - 1], this->rank[this->order - 1]);
-        temp["ij"] = this->optimizer->M[this->order - 1]->operator[]("ij") * this->optimizer->W[this->order - 1]->operator[]("ij");
+        Matrix<> temp =
+            Matrix<>(this->size[this->order - 1], this->rank[this->order - 1]);
+        temp["ij"] = this->optimizer->M[this->order - 1]->operator[]("ij") *
+                     this->optimizer->W[this->order - 1]->operator[]("ij");
         double T_W_inner = temp.reduce(CTF::OP_SUM);
         diffnorm_V = sqrt(Vnorm * Vnorm + Wnorms * Wnorms - 2. * T_W_inner);
         fitness = 1. - diffnorm_V / Vnorm;
@@ -162,11 +165,10 @@ bool CPD<dtype, Optimizer>::als(double tol, double Vnorm, double timelimit, int 
           cout << "  [dim]=  " << (this->V)->lens[0]
                << "  [sweeps]=  " << sweeps << "  [gradnorm]  " << gradnorm
                << "  [tol]  " << tol << "  [pp_update]  " << 0
-               << "  [fitness]  " << fitness << "  [dtime]  " << dtime
-               << "\n";
+               << "  [fitness]  " << fitness << "  [dtime]  " << dtime << "\n";
           Plot_File << (this->V)->lens[0] << "," << sweeps << "," << gradnorm
-                    << "," << tol << "," << 0 << "," << fitness << ","
-                    << dtime << "\n";
+                    << "," << tol << "," << 0 << "," << fitness << "," << dtime
+                    << "\n";
           // flush the contents to csv
           if (iters % 100 == 0 && iters != 0) {
             Plot_File << endl;

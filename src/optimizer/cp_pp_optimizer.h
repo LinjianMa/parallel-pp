@@ -26,7 +26,8 @@ public:
 
   void mttkrp_approx(int i, Matrix<> **dW, Matrix<> *N);
 
-  void mttkrp_approx_second_correction(int i, Matrix<> &S, Matrix<> &S_temp, Matrix<> **WTW, Matrix<> **WTdW);
+  void mttkrp_approx_second_correction(int i, Matrix<> &S, Matrix<> &S_temp,
+                                       Matrix<> **WTW, Matrix<> **WTdW);
 
   double tol_restart_dt;
   bool restart;

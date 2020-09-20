@@ -4,10 +4,10 @@
 #include <ctf.hpp>
 using namespace CTF;
 
-void subsetsUtil(vector<int>& A, vector<vector<int> >& res, 
-                 vector<int>& subset, int index, int min_length);
+void subsetsUtil(vector<int> &A, vector<vector<int>> &res, vector<int> &subset,
+                 int index, int min_length);
 
-vector<vector<int>> subsets(vector<int>& A, int min_length);
+vector<vector<int>> subsets(vector<int> &A, int min_length);
 
 void vec2str(vector<int> vec, string &seq_out);
 

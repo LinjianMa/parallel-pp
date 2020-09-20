@@ -110,7 +110,10 @@ void CPPPOptimizer<dtype>::mttkrp_approx(int i, Matrix<> **dW, Matrix<> *N) {
 }
 
 template <typename dtype>
-void CPPPOptimizer<dtype>::mttkrp_approx_second_correction(int i, Matrix<> &S, Matrix<> &S_temp, Matrix<> **WTW, Matrix<> **WTdW) {
+void CPPPOptimizer<dtype>::mttkrp_approx_second_correction(int i, Matrix<> &S,
+                                                           Matrix<> &S_temp,
+                                                           Matrix<> **WTW,
+                                                           Matrix<> **WTdW) {
   Timer t_pp_mttkrp_approx("pp_mttkrp_approx_second_correction");
   t_pp_mttkrp_approx.start();
 
@@ -127,8 +130,7 @@ void CPPPOptimizer<dtype>::mttkrp_approx_second_correction(int i, Matrix<> &S, M
     for (auto const &j : j_list) {
       if (find(dW_indices.begin(), dW_indices.end(), j) != dW_indices.end()) {
         S_temp["ij"] = S_temp["ij"] * WTdW[j]->operator[]("ij");
-      }
-       else {
+      } else {
         S_temp["ij"] = S_temp["ij"] * WTW[j]->operator[]("ij");
       }
     }
@@ -150,7 +152,8 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_pp() {
     mttkrp_approx(i, this->dW, this->M[i]);
     Matrix<> S_temp = Matrix<>(this->rank, this->rank, *this->world);
     mttkrp_approx_second_correction(i, this->S, S_temp, this->WTW, this->WTdW);
-    this->M[i]->operator[]("ij") += this->W[i]->operator[]("ik") * this->S["kj"];
+    this->M[i]->operator[]("ij") +=
+        this->W[i]->operator[]("ik") * this->S["kj"];
 
     CPOptimizer<dtype>::update_S(i);
     spd_solve(*this->M[i], *this->update_W[i], this->S);
@@ -161,8 +164,8 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_pp() {
         update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
     this->W[i]->operator[]("ij") = update_W[i]->operator[]("ij");
 
-    this->WTdW[i]->operator[]("jk") = this->W[i]->operator[]("ij") *
-                                      this->dW[i]->operator[]("ik");
+    this->WTdW[i]->operator[]("jk") =
+        this->W[i]->operator[]("ij") * this->dW[i]->operator[]("ik");
   }
 
   int num_bigupdate = 0;

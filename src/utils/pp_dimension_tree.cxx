@@ -11,7 +11,9 @@ PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T) {
   this->T = T;
 }
 
-PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T, map<int, Tensor<> *> trans_T_map, map<int, string> trans_T_str_map) {
+PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T,
+                                 map<int, Tensor<> *> trans_T_map,
+                                 map<int, string> trans_T_str_map) {
   this->order = order;
   this->world = world;
   this->T = T;
@@ -157,8 +159,7 @@ void PPDimensionTree::initialize_treenode(vector<int> nodeindex, World *dw,
   t_pp_initialize_treenode.stop();
 }
 
-void PPDimensionTree::initialize_tree(World *dw, Tensor<> *T,
-                                      Matrix<> **mat) {
+void PPDimensionTree::initialize_tree(World *dw, Tensor<> *T, Matrix<> **mat) {
   Timer t_pp_initialize_tree("pp_initialize_tree");
   t_pp_initialize_tree.start();
 

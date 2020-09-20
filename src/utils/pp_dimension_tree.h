@@ -10,7 +10,9 @@ class PPDimensionTree {
 public:
   PPDimensionTree(int order, World *world, Tensor<> *T);
 
-  PPDimensionTree(int order, World *world, Tensor<> *T, map<int, Tensor<> *> trans_T_map, map<int, string> trans_T_str_map);
+  PPDimensionTree(int order, World *world, Tensor<> *T,
+                  map<int, Tensor<> *> trans_T_map,
+                  map<int, string> trans_T_str_map);
 
   ~PPDimensionTree();
 

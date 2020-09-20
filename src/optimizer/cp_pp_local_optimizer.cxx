@@ -69,14 +69,18 @@ void CPPPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
     WTW_local[i] = new Matrix<>(pad_row, pad_col, *this->local_mttkrp->sworld);
     WTdW_local[i] = new Matrix<>(pad_row, pad_col, *this->local_mttkrp->sworld);
 
-    memcpy(WTW_local[i]->data, this->WTW[i]->data, sizeof(dtype) * num_elements);
-    memcpy(WTdW_local[i]->data, this->WTdW[i]->data, sizeof(dtype) * num_elements);
+    memcpy(WTW_local[i]->data, this->WTW[i]->data,
+           sizeof(dtype) * num_elements);
+    memcpy(WTdW_local[i]->data, this->WTdW[i]->data,
+           sizeof(dtype) * num_elements);
   }
 
   if (this->use_msdt == false) {
     this->ppdt = new PPDimensionTree(this->order, this->world, input);
   } else {
-    this->ppdt = new PPDimensionTree(this->order, this->world, input, this->local_mttkrp->trans_V_local_map, this->local_mttkrp->trans_V_str_map);
+    this->ppdt = new PPDimensionTree(this->order, this->world, input,
+                                     this->local_mttkrp->trans_V_local_map,
+                                     this->local_mttkrp->trans_V_str_map);
   }
 }
 
@@ -115,22 +119,25 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
   return 1.;
 }
 
-template <typename dtype> void CPPPLocalOptimizer<dtype>::pp_update_after_solve(int i) {
+template <typename dtype>
+void CPPPLocalOptimizer<dtype>::pp_update_after_solve(int i) {
   Timer t_localpp_step_pp("pp_update_after_solve");
   t_localpp_step_pp.start();
 
-    this->WTW[i]->operator[]("jk") = this->update_W[i]->operator[]("ij") *
-                                     this->update_W[i]->operator[]("ik");
+  this->WTW[i]->operator[]("jk") =
+      this->update_W[i]->operator[]("ij") * this->update_W[i]->operator[]("ik");
 
-    // TODO: these two lines can be faster
-    this->dW[i]->operator[]("ij") +=
-        this->update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
-    this->W[i]->operator[]("ij") = this->update_W[i]->operator[]("ij");
+  // TODO: these two lines can be faster
+  this->dW[i]->operator[]("ij") +=
+      this->update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
+  this->W[i]->operator[]("ij") = this->update_W[i]->operator[]("ij");
 
-    this->WTdW[i]->operator[]("jk") = this->W[i]->operator[]("ij") *
-                                      this->dW[i]->operator[]("ik");
-    memcpy(WTW_local[i]->data, this->WTW[i]->data, sizeof(dtype) * WTW_local[i]->ncol * WTW_local[i]->nrow);
-    memcpy(WTdW_local[i]->data, this->WTdW[i]->data, sizeof(dtype) * WTdW_local[i]->ncol * WTdW_local[i]->nrow);
+  this->WTdW[i]->operator[]("jk") =
+      this->W[i]->operator[]("ij") * this->dW[i]->operator[]("ik");
+  memcpy(WTW_local[i]->data, this->WTW[i]->data,
+         sizeof(dtype) * WTW_local[i]->ncol * WTW_local[i]->nrow);
+  memcpy(WTdW_local[i]->data, this->WTdW[i]->data,
+         sizeof(dtype) * WTdW_local[i]->ncol * WTdW_local[i]->nrow);
   t_localpp_step_pp.stop();
 }
 
@@ -149,13 +156,17 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
     this->M[i]->operator[]("ij") =
         this->local_mttkrp->mttkrp[i]->operator[]("ij");
     // second order correction
-    CPPPOptimizer<dtype>::mttkrp_approx_second_correction(i, this->S_local, this->S_local_temp, this->WTW_local, this->WTdW_local);
-    memcpy(this->S.data, this->S_local.data, sizeof(dtype) * S_local.ncol * S_local.nrow);
-    this->M[i]->operator[]("ij") += this->W[i]->operator[]("ik") * this->S["kj"];
+    CPPPOptimizer<dtype>::mttkrp_approx_second_correction(
+        i, this->S_local, this->S_local_temp, this->WTW_local,
+        this->WTdW_local);
+    memcpy(this->S.data, this->S_local.data,
+           sizeof(dtype) * S_local.ncol * S_local.nrow);
+    this->M[i]->operator[]("ij") +=
+        this->W[i]->operator[]("ik") * this->S["kj"];
 
     CPOptimizer<dtype>::update_S(i);
     spd_solve(*this->M[i], *this->update_W[i], this->S);
-    pp_update_after_solve(i); 
+    pp_update_after_solve(i);
 
     this->local_mttkrp->distribute_W(i, this->local_mttkrp->W,
                                      this->local_mttkrp->W_local);
@@ -194,13 +205,15 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step() {
         this->dW_local[i]->operator[]("ij") = 0.;
         this->WTdW[i]->operator[]("ij") = 0.;
       }
-      this->ppdt->initialize_tree(
-          this->local_mttkrp->sworld, this->local_mttkrp->V_local,
-          this->local_mttkrp->W_local);
+      this->ppdt->initialize_tree(this->local_mttkrp->sworld,
+                                  this->local_mttkrp->V_local,
+                                  this->local_mttkrp->W_local);
       this->reinitialize_tree = false;
       for (int i = 0; i < this->order; i++) {
-        memcpy(WTW_local[i]->data, this->WTW[i]->data, sizeof(dtype) * WTW_local[i]->ncol * WTW_local[i]->nrow);
-        memcpy(WTdW_local[i]->data, this->WTdW[i]->data, sizeof(dtype) * WTdW_local[i]->ncol * WTdW_local[i]->nrow);
+        memcpy(WTW_local[i]->data, this->WTW[i]->data,
+               sizeof(dtype) * WTW_local[i]->ncol * WTW_local[i]->nrow);
+        memcpy(WTdW_local[i]->data, this->WTdW[i]->data,
+               sizeof(dtype) * WTdW_local[i]->ncol * WTdW_local[i]->nrow);
       }
     }
     num_sweep = step_pp();
