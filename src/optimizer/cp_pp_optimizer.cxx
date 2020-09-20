@@ -206,7 +206,7 @@ template <typename dtype> double CPPPOptimizer<dtype>::step() {
         this->dW[i]->operator[]("ij") = 0.;
         this->WTdW[i]->operator[]("ij") = 0.;
       }
-      ppdt->initialize_tree(this->world, this->V, this->W);
+      ppdt->initialize_tree(this->W);
       this->reinitialize_tree = false;
     }
     num_sweep = step_pp();

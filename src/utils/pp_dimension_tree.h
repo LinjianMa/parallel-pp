@@ -24,10 +24,11 @@ public:
   void get_parentnode(vector<int> nodeindex, string &parent_nodename,
                       vector<int> &parent_index, int &contract_index);
 
-  void initialize_treenode(vector<int> nodeindex, World *dw, Tensor<> *T,
-                           Matrix<> **mat);
+  void initialize_treenode(vector<int> nodeindex, Matrix<> **mat);
 
-  void initialize_tree(World *dw, Tensor<> *T, Matrix<> **mat);
+  void initialize_tree_root();
+
+  void initialize_tree(Matrix<> **mat);
 
   int order;
   World *world;
@@ -39,6 +40,10 @@ public:
   // The map storing the transposes of the input tensor (used in MSDT).
   map<int, Tensor<> *> trans_T_map;
   map<int, string> trans_T_str_map;
+  bool use_transpose_T = false;
+
+  vector<int> fulllist = {};
+  World dw;
 };
 
 #endif
