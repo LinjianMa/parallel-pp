@@ -72,6 +72,12 @@ void CPPPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
     memcpy(WTW_local[i]->data, this->WTW[i]->data, sizeof(dtype) * num_elements);
     memcpy(WTdW_local[i]->data, this->WTdW[i]->data, sizeof(dtype) * num_elements);
   }
+
+  if (this->use_msdt == false) {
+    this->ppdt = new PPDimensionTree(this->order, this->world, input);
+  } else {
+    this->ppdt = new PPDimensionTree(this->order, this->world, input, this->local_mttkrp->trans_V_local_map, this->local_mttkrp->trans_V_str_map);
+  }
 }
 
 template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
@@ -185,10 +191,12 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step() {
       this->restart = true;
       for (int i = 0; i < this->order; i++) {
         this->dW[i]->operator[]("ij") = 0.;
+        this->dW_local[i]->operator[]("ij") = 0.;
+        this->WTdW[i]->operator[]("ij") = 0.;
       }
-      CPPPOptimizer<dtype>::initialize_tree(
+      this->ppdt->initialize_tree(
           this->local_mttkrp->sworld, this->local_mttkrp->V_local,
-          this->local_mttkrp->W_local, this->dW_local);
+          this->local_mttkrp->W_local);
       this->reinitialize_tree = false;
       for (int i = 0; i < this->order; i++) {
         memcpy(WTW_local[i]->data, this->WTW[i]->data, sizeof(dtype) * WTW_local[i]->ncol * WTW_local[i]->nrow);

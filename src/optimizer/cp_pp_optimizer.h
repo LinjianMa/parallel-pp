@@ -1,7 +1,7 @@
 #ifndef __CP_PP_OPTIMIZER_H__
 #define __CP_PP_OPTIMIZER_H__
 
-#include "../utils/dimension_tree.h"
+#include "../utils/pp_dimension_tree.h"
 #include <ctf.hpp>
 #include <fstream>
 
@@ -24,20 +24,6 @@ public:
   void configure(Tensor<dtype> *input, Matrix<dtype> **mat, Matrix<dtype> *grad,
                  double lambda);
 
-  vector<string> get_einstr(vector<int> nodeindex, vector<int> parent_nodeindex,
-                            int contract_index);
-
-  string get_nodename(vector<int> nodeindex);
-
-  void get_parentnode(vector<int> nodeindex, string &parent_nodename,
-                      vector<int> &parent_index, int &contract_index);
-
-  void initialize_treenode(vector<int> nodeindex, World *dw, Tensor<> *T,
-                           Matrix<> **mat);
-
-  void initialize_tree(World *dw, Tensor<> *T, Matrix<> **mat,
-                       Matrix<> **deltaW);
-
   void mttkrp_approx(int i, Matrix<> **dW, Matrix<> *N);
 
   void mttkrp_approx_second_correction(int i, Matrix<> &S, Matrix<> &S_temp, Matrix<> **WTW, Matrix<> **WTdW);
@@ -47,12 +33,11 @@ public:
   bool pp = false;
   bool reinitialize_tree;
 
-  map<string, Tensor<dtype> *> name_tensor_map;
-  map<string, vector<int>> name_index_map;
-
   Matrix<> **dW;
   Matrix<> **update_W = NULL;
   Matrix<dtype> **WTdW = NULL;
+
+  PPDimensionTree *ppdt = NULL;
 };
 
 #include "cp_pp_optimizer.cxx"
