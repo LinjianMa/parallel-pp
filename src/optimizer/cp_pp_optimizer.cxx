@@ -6,8 +6,8 @@ using namespace CTF;
 
 template <typename dtype>
 CPPPOptimizer<dtype>::CPPPOptimizer(int order, int r, World &dw,
-                                    double tol_restart_dt)
-    : CPDTOptimizer<dtype>(order, r, dw, false) {
+                                    double tol_restart_dt, bool use_msdt)
+    : CPDTOptimizer<dtype>(order, r, dw, use_msdt) {
   this->tol_restart_dt = tol_restart_dt;
   this->dW = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   update_W = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
@@ -43,6 +43,7 @@ void CPPPOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> **mat,
 template <typename dtype> double CPPPOptimizer<dtype>::step_dt() {
   Timer t_pp_step_dt("pp_step_dt");
   t_pp_step_dt.start();
+  double num_sweep = 0.;
 
   if (this->world->rank == 0) {
     cout << "***** dt step *****" << endl;
@@ -52,8 +53,14 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_dt() {
     this->dW[i]->operator[]("ij") = this->W[i]->operator[]("ij");
   }
 
-  CPDTOptimizer<dtype>::step();
-  CPDTOptimizer<dtype>::step();
+  if (this->use_msdt == false) {
+    CPDTOptimizer<dtype>::step();
+    CPDTOptimizer<dtype>::step();
+    num_sweep = 1.;
+  } else {
+    CPDTOptimizer<dtype>::step();
+    num_sweep = 1. * (this->order - 1) / this->order;
+  }
 
   int num_smallupdate = 0;
   for (int i = 0; i < this->order; i++) {
@@ -72,7 +79,7 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_dt() {
   }
 
   t_pp_step_dt.stop();
-  return 1.;
+  return num_sweep;
 }
 
 template <typename dtype>

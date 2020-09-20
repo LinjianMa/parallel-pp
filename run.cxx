@@ -387,7 +387,7 @@ int main(int argc, char **argv) {
       if (dw.rank == 0) {
         cout << "============CPPPOptimizer=============" << endl;
       }
-      CPD<double, CPPPOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol);
+      CPD<double, CPPPOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol, use_msdt);
       decom.Init(&V, W);
       decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 5) {
@@ -395,7 +395,7 @@ int main(int argc, char **argv) {
         cout << "============CPPPLocalOptimizer=============" << endl;
       }
       CPD<double, CPPPLocalOptimizer<double>> decom(dim, lens, R, dw,
-                                                    pp_res_tol);
+                                                    pp_res_tol, use_msdt);
       decom.Init(&V, W);
       decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     }

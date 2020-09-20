@@ -6,10 +6,10 @@ using namespace CTF;
 
 template <typename dtype>
 CPPPLocalOptimizer<dtype>::CPPPLocalOptimizer(int order, int r, World &dw,
-                                              double tol_restart_dt)
-    : CPPPOptimizer<dtype>(order, r, dw, tol_restart_dt),
-      CPDTLocalOptimizer<dtype>(order, r, dw, false), CPDTOptimizer<dtype>(
-                                                          order, r, dw, false) {
+                                              double tol_restart_dt, bool use_msdt)
+    : CPPPOptimizer<dtype>(order, r, dw, tol_restart_dt, use_msdt),
+      CPDTLocalOptimizer<dtype>(order, r, dw, use_msdt), CPDTOptimizer<dtype>(
+                                                          order, r, dw, use_msdt) {
   this->dW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   this->WTW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   this->WTdW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
@@ -87,6 +87,7 @@ void CPPPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
 template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
   Timer t_localpp_step_dt("localpp_step_dt");
   t_localpp_step_dt.start();
+  double num_sweep = 0.;
 
   if (this->world->rank == 0) {
     cout << "***** dt step *****" << endl;
@@ -96,8 +97,14 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
     this->dW[i]->operator[]("ij") = this->W[i]->operator[]("ij");
   }
 
-  CPDTLocalOptimizer<dtype>::step();
-  CPDTLocalOptimizer<dtype>::step();
+  if (this->use_msdt == false) {
+    CPDTLocalOptimizer<dtype>::step();
+    CPDTLocalOptimizer<dtype>::step();
+    num_sweep = 1.;
+  } else {
+    CPDTLocalOptimizer<dtype>::step();
+    num_sweep = 1. * (this->order - 1) / this->order;
+  }
 
   int num_smallupdate = 0;
   for (int i = 0; i < this->order; i++) {
@@ -116,7 +123,7 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
   }
 
   t_localpp_step_dt.stop();
-  return 1.;
+  return num_sweep;
 }
 
 template <typename dtype>

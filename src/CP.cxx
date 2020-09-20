@@ -36,7 +36,7 @@ CPD<dtype, Optimizer>::CPD(int order, int *size_, int r, World &dw)
 
 template <typename dtype, class Optimizer>
 CPD<dtype, Optimizer>::CPD(int order, int *size_, int r, World &dw,
-                           double tol_restart_dt)
+                           double tol_restart_dt, bool use_msdt)
     : Decomposition<dtype>(order, size_, r, dw) {
 
   for (int i = 1; i < order; i++) {
@@ -44,7 +44,7 @@ CPD<dtype, Optimizer>::CPD(int order, int *size_, int r, World &dw,
     assert(this->rank[i] == r);
   }
 
-  optimizer = new Optimizer(order, r, dw, tol_restart_dt);
+  optimizer = new Optimizer(order, r, dw, tol_restart_dt, use_msdt);
 
   // make the char seq_V
   seq_V[order] = '\0';
