@@ -102,8 +102,10 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
     CPDTLocalOptimizer<dtype>::step();
     num_sweep = 1.;
   } else {
-    CPDTLocalOptimizer<dtype>::step();
-    num_sweep = 1. * (this->order - 1) / this->order;
+    for (int i = 0; i < this->order; i++) {
+      CPDTLocalOptimizer<dtype>::step();
+    }
+    num_sweep = 1. * (this->order - 1);
   }
 
   int num_smallupdate = 0;

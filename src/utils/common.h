@@ -11,7 +11,7 @@ vector<vector<int>> subsets(vector<int> &A, int min_length);
 
 void vec2str(vector<int> vec, string &seq_out);
 
-void build_V(Tensor<> &V, Matrix<> **W, int order, World &dw);
+void build_V(Tensor<> &V, Matrix<> **W, int order, World &dw, vector<int> const mesh);
 
 void mttkrp_map_DT(map<string, Tensor<>> &mttkrp_map,
                    map<string, string> &parent, map<string, string> &sibling,

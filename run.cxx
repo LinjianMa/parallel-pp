@@ -8,12 +8,23 @@ char *getCmdOption(char **begin, char **end, const std::string &option) {
   return 0;
 }
 
+vector<int> getVectorCmdOption(char **begin, char **end, const std::string &option) {
+  vector<int> ret_vector = {};
+  char **itr = std::find(begin, end, option);
+  ++itr;
+  while (itr != end && isdigit((*itr)[0])) {
+    ret_vector.push_back(atoi(*itr));
+    ++itr;
+  }
+  return ret_vector;
+}
+
 int main(int argc, char **argv) {
   int rank, np; //, n, pass;
   int const in_num = argc;
   char **input_str = argv;
 
-  char *tensor; // which tensor    p / p2 / c / r / r2 / o /
+  char *tensor; // which tensor    c / r / r2 / o /
   int method;   // 0 simple 1 Local-simple 2 DT 3 Local-DT 4 PP 5 Local-PP
   bool use_msdt = false;
   double update_percentage_pp; // pp update ratio. For each sweep only update
@@ -27,7 +38,8 @@ int main(int argc, char **argv) {
   o1 : coil-100 dataset
   */
   int dim;                // number of dimensions
-  int s;                  // tensor size in each dimension
+  vector<int> sizes;      // tensor size in each dimension
+  vector<int> processor_mesh = {}; // the physical processor mesh grid
   int R;                  // decomposition rank
   int issparse;           // whether use the sparse routine or not
   double tol;             // global convergance tolerance
@@ -97,19 +109,14 @@ int main(int argc, char **argv) {
   } else {
     timelimit = 5e7;
   }
-  if (getCmdOption(input_str, input_str + in_num, "-size")) {
-    s = atoi(getCmdOption(input_str, input_str + in_num, "-size"));
-    if (s < 0)
-      s = 50;
-  } else {
-    s = 50;
+  if (getCmdOption(input_str, input_str + in_num, "-sizes")) {
+    sizes = getVectorCmdOption(input_str, input_str + in_num, "-sizes");
+  }
+  if (getCmdOption(input_str, input_str + in_num, "-mesh")) {
+    processor_mesh = getVectorCmdOption(input_str, input_str + in_num, "-mesh");
   }
   if (getCmdOption(input_str, input_str + in_num, "-rank")) {
     R = atoi(getCmdOption(input_str, input_str + in_num, "-rank"));
-    if (R < 0)
-      R = s / 2;
-  } else {
-    R = s / 2;
   }
   if (getCmdOption(input_str, input_str + in_num, "-issparse")) {
     issparse = atoi(getCmdOption(input_str, input_str + in_num, "-issparse"));
@@ -188,10 +195,11 @@ int main(int argc, char **argv) {
     World dw(argc, argv);
     World sworld(MPI_COMM_SELF);
     srand48(dw.rank * 1);
+    IASSERT(sizes.size() == dim);
 
     if (dw.rank == 0) {
       cout << "  tensor=  " << tensor << "  method=  " << method << endl;
-      cout << "  dim=  " << dim << "  size=  " << s << "  rank=  " << R
+      cout << "  dim=  " << dim << "  rank=  " << R
            << "  use_msdt=  " << use_msdt << endl;
       cout << "  issparse=  " << issparse << "  tolerance=  " << tol
            << "  restarttol=  " << pp_res_tol << endl;
@@ -203,40 +211,26 @@ int main(int argc, char **argv) {
            << "  resprint=  " << resprint << endl;
       cout << "  tensorfile=  " << tensorfile
            << "  update_percentage_pp=  " << update_percentage_pp << endl;
+      cout << "  sizes=  ";
+      for (int i = 0; i < dim; i++) {
+        cout << sizes[i] << "  ";
+      }
+      cout << endl;
+      cout << "  processor_mesh=  ";
+      for (int i = 0; i < processor_mesh.size(); i++) {
+        cout << processor_mesh[i] << "  ";
+      }
+      cout << endl;
     }
 
     // initialization of tensor
     Tensor<> V;
 
-    if (tensor[0] == 'p') {
-      if (strlen(tensor) > 1 && tensor[1] == '2') {
-        // p2 : poisson operator with doubled dimension (decomposition is not
-        // accurate)
-        int lens[dim];
-        for (int i = 0; i < dim; i++)
-          lens[i] = s;
-        V = Tensor<>(dim, issparse, lens, dw);
-        laplacian_tensor(V, dim, s, issparse, dw);
-      } else {
-        // p : poisson operator
-        int lens0[dim];
-        for (int i = 0; i < dim; i++)
-          lens0[i] = s;
-        Tensor<> V0 = Tensor<>(dim, issparse, lens0, dw);
-        laplacian_tensor(V0, dim, s, issparse, dw);
-        // reshape V0
-        int lens[dim / 2];
-        for (int i = 0; i < dim / 2; i++)
-          lens[i] = s * s;
-        V = Tensor<>(dim / 2, issparse, lens, dw);
-        // reshape V0 into V
-        fold_unfold(V0, V);
-      }
-    } else if (tensor[0] == 'c') {
+    if (tensor[0] == 'c') {
       // c : designed tensor with constrained collinearity
       int lens[dim];
       for (int i = 0; i < dim; i++)
-        lens[i] = s;
+        lens[i] = sizes[i];
       char chars[] = {'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
                       's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '\0'};
       char arg[dim + 1];
@@ -256,7 +250,7 @@ int main(int argc, char **argv) {
         // r2 : random tensor
         int lens[dim];
         for (int i = 0; i < dim; i++)
-          lens[i] = s;
+          lens[i] = sizes[i];
         // create subworld tensor
         Tensor<> *V_subworld = NULL;
         if (dw.rank == 0) {
@@ -270,7 +264,7 @@ int main(int argc, char **argv) {
         // r : tensor made by random matrices
         int lens[dim];
         for (int i = 0; i < dim; i++)
-          lens[i] = s;
+          lens[i] = sizes[i];
         Matrix<> **W = (Matrix<> **)malloc(
             dim * sizeof(Matrix<> *)); // N matrices V will be decomposed into
         for (int i = 0; i < dim; i++) {
@@ -278,14 +272,14 @@ int main(int argc, char **argv) {
           // processes
           Matrix<> *W_subworld = NULL;
           if (dw.rank == 0) {
-            W_subworld = new Matrix<>(s, R, sworld);
+            W_subworld = new Matrix<>(sizes[i], R, sworld);
             W_subworld->fill_random(0., 1.);
           }
-          W[i] = new Matrix<>(s, R, dw);
+          W[i] = new Matrix<>(sizes[i], R, dw);
           W[i]->add_from_subworld(W_subworld);
           delete W_subworld;
         }
-        build_V(V, W, dim, dw);
+        build_V(V, W, dim, dw, processor_mesh);
         delete[] W;
       }
     } else if (tensor[0] == 'o') {

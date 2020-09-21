@@ -42,6 +42,12 @@ void CPDTLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
       break;
     }
   }
+  if (this->world->rank == 0) {
+    cout << "is equidimentional: " << this->is_equidimentional << endl;
+    for (int i = 0; i < this->order; i++) {
+    cout << "V_local_lens[" << i << "]: " << this->local_mttkrp->V_local->lens[i] << endl;
+    }
+  }
 }
 
 template <typename dtype>

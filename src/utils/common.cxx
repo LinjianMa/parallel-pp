@@ -152,7 +152,7 @@ void mttkrp_map_DT(map<string, Tensor<>> &mttkrp_map,
   return;
 }
 
-void build_V(Tensor<> &V, Matrix<> **W, int order, World &dw) {
+void build_V(Tensor<> &V, Matrix<> **W, int order, World &dw, vector<int> const mesh) {
   Timer tbuild_V("build_V");
   tbuild_V.start();
 
@@ -161,7 +161,20 @@ void build_V(Tensor<> &V, Matrix<> **W, int order, World &dw) {
   for (int j = 0; j < order; j++) {
     lens_V[j] = W[j]->nrow;
   }
-  V = Tensor<>(order, lens_V, dw);
+  if (mesh.size() == 0) {
+    V = Tensor<>(order, lens_V, dw);
+  } else {
+    int lens_proc[order];
+    int syms[order];
+    char idx[order];
+    for (int j = 0; j < order; j++) {
+      lens_proc[j] = mesh[j];
+      syms[j] = NS;
+      idx[j] = 'a' + j;
+    }
+    Partition p(order, (int *)&lens_proc);
+    V = Tensor<>(order, lens_V, syms, dw, idx, p[idx]);
+  }
 
   if (order == 3) {
     V["abc"] += (*W[0])["a*"] * (*W[1])["b*"] * (*W[2])["c*"];
@@ -738,7 +751,7 @@ void spd_solve(Matrix<> &M, Matrix<> &W, Matrix<> &S) {
   Timer tspd_solve("SPD_solve");
   tspd_solve.start();
 
-  Matrix<> W_trans = Matrix<>(W.ncol, W.nrow);
+  Matrix<> W_trans;
   Matrix<> M_trans = Matrix<>(M.ncol, M.nrow);
   M_trans["ij"] = M["ji"];
   M_trans.solve_spd(S, W_trans);
