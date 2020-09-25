@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
   char *tensor; // which tensor    c / r / r2 / o /
   int method;   // 0 simple 1 Local-simple 2 DT 3 Local-DT 4 PP 5 Local-PP
   bool use_msdt = false;
+  bool renew_ppoperator = false;
   double update_percentage_pp; // pp update ratio. For each sweep only update
                                // update_percentage_pp*N matrices.
   /*
@@ -79,6 +80,11 @@ int main(int argc, char **argv) {
       use_msdt = true;
   } else {
     use_msdt = false;
+  }
+  if (getCmdOption(input_str, input_str + in_num, "-ppoperator")) {
+    int ppoperator = atoi(getCmdOption(input_str, input_str + in_num, "-ppoperator"));
+    if (ppoperator > 0)
+      renew_ppoperator = true;
   }
   if (getCmdOption(input_str, input_str + in_num, "-update_percentage_pp")) {
     update_percentage_pp = atof(
@@ -200,7 +206,7 @@ int main(int argc, char **argv) {
     if (dw.rank == 0) {
       cout << "  tensor=  " << tensor << "  method=  " << method << endl;
       cout << "  dim=  " << dim << "  rank=  " << R
-           << "  use_msdt=  " << use_msdt << endl;
+           << "  use_msdt=  " << use_msdt << "  renew_ppoperator=  " << renew_ppoperator << endl;
       cout << "  issparse=  " << issparse << "  tolerance=  " << tol
            << "  restarttol=  " << pp_res_tol << endl;
       cout << "  lambda=  " << lambda_ << "  magnitude=  " << magni
@@ -381,7 +387,7 @@ int main(int argc, char **argv) {
       if (dw.rank == 0) {
         cout << "============CPPPOptimizer=============" << endl;
       }
-      CPD<double, CPPPOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol, use_msdt);
+      CPD<double, CPPPOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol, use_msdt, renew_ppoperator);
       decom.Init(&V, W);
       decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 5) {
@@ -389,7 +395,7 @@ int main(int argc, char **argv) {
         cout << "============CPPPLocalOptimizer=============" << endl;
       }
       CPD<double, CPPPLocalOptimizer<double>> decom(dim, lens, R, dw,
-                                                    pp_res_tol, use_msdt);
+                                                    pp_res_tol, use_msdt, renew_ppoperator);
       decom.Init(&V, W);
       decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     }

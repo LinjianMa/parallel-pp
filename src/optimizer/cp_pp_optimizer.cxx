@@ -6,8 +6,8 @@ using namespace CTF;
 
 template <typename dtype>
 CPPPOptimizer<dtype>::CPPPOptimizer(int order, int r, World &dw,
-                                    double tol_restart_dt, bool use_msdt)
-    : CPDTOptimizer<dtype>(order, r, dw, use_msdt) {
+                                    double tol_restart_dt, bool use_msdt, bool renew_ppoperator)
+    : CPDTOptimizer<dtype>(order, r, dw, use_msdt, renew_ppoperator) {
   this->tol_restart_dt = tol_restart_dt;
   this->dW = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   update_W = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
@@ -58,8 +58,10 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_dt() {
     CPDTOptimizer<dtype>::step();
     num_sweep = 1.;
   } else {
-    CPDTOptimizer<dtype>::step();
-    num_sweep = 1. * (this->order - 1) / this->order;
+    for (int i = 0; i < this->order; i++) {
+      CPDTOptimizer<dtype>::step();
+    }
+    num_sweep = 1. * (this->order - 1);
   }
 
   int num_smallupdate = 0;
@@ -76,6 +78,10 @@ template <typename dtype> double CPPPOptimizer<dtype>::step_dt() {
   if (num_smallupdate == this->order) {
     this->pp = true;
     this->reinitialize_tree = true;
+    if (this->renew_ppoperator == true) {
+      // prepare inter_for_pp
+      this->ppdt->inter_for_pp = this->inter_for_pp;
+    }
   }
 
   t_pp_step_dt.stop();

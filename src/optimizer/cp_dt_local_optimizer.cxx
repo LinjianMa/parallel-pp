@@ -9,7 +9,13 @@ template <typename dtype>
 CPDTLocalOptimizer<dtype>::CPDTLocalOptimizer(int order, int r, World &dw,
                                               bool use_msdt)
     : CPDTOptimizer<dtype>(order, r, dw, use_msdt) {
+  local_mttkrp = new LocalMTTKRP<dtype>(order, r, dw);
+}
 
+template <typename dtype>
+CPDTLocalOptimizer<dtype>::CPDTLocalOptimizer(int order, int r, World &dw,
+                                              bool use_msdt, bool renew_ppoperator)
+    : CPDTOptimizer<dtype>(order, r, dw, use_msdt, renew_ppoperator) {
   local_mttkrp = new LocalMTTKRP<dtype>(order, r, dw);
 }
 
@@ -129,6 +135,12 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
     this->mttkrp_map.clear();
   }
   this->mttkrp_exist_map.clear();
+
+  // consider init_pp
+  if (this->renew_ppoperator == true) {
+    CPDTOptimizer<dtype>::construct_inter_for_pp(local_mttkrp->sworld, local_mttkrp->V_local->lens, this->left_index);
+    this->mttkrp_map[this->seq_tree_top] = this->inter_for_pp[this->inter_for_pp.size() - 1];
+  }
 
   // reinitialize
   this->dt->update_indexes(this->indexes, this->left_index);

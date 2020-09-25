@@ -6,10 +6,10 @@ using namespace CTF;
 
 template <typename dtype>
 CPPPLocalOptimizer<dtype>::CPPPLocalOptimizer(int order, int r, World &dw,
-                                              double tol_restart_dt, bool use_msdt)
-    : CPPPOptimizer<dtype>(order, r, dw, tol_restart_dt, use_msdt),
-      CPDTLocalOptimizer<dtype>(order, r, dw, use_msdt), CPDTOptimizer<dtype>(
-                                                          order, r, dw, use_msdt) {
+                                              double tol_restart_dt, bool use_msdt, bool renew_ppoperator)
+    : CPPPOptimizer<dtype>(order, r, dw, tol_restart_dt, use_msdt, renew_ppoperator),
+      CPDTLocalOptimizer<dtype>(order, r, dw, use_msdt, renew_ppoperator), CPDTOptimizer<dtype>(
+                                                          order, r, dw, use_msdt, renew_ppoperator) {
   this->dW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   this->WTW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   this->WTdW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
@@ -122,6 +122,10 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
   if (num_smallupdate == this->order) {
     this->pp = true;
     this->reinitialize_tree = true;
+    if (this->renew_ppoperator == true) {
+      // prepare inter_for_pp
+      this->ppdt->inter_for_pp = this->inter_for_pp;
+    }
   }
 
   t_localpp_step_dt.stop();

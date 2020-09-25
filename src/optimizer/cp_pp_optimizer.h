@@ -11,7 +11,7 @@ template <typename dtype>
 class CPPPOptimizer : virtual public CPDTOptimizer<dtype> {
 
 public:
-  CPPPOptimizer(int order, int r, World &dw, double tol_restart_dt, bool use_msdt);
+  CPPPOptimizer(int order, int r, World &dw, double tol_restart_dt, bool use_msdt, bool renew_ppoperator);
 
   ~CPPPOptimizer();
 

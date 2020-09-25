@@ -14,6 +14,8 @@ class CPDTLocalOptimizer : virtual public CPDTOptimizer<dtype> {
 public:
   CPDTLocalOptimizer(int order, int r, World &dw, bool use_msdt);
 
+  CPDTLocalOptimizer(int order, int r, World &dw, bool use_msdt, bool renew_ppoperator);
+
   ~CPDTLocalOptimizer();
 
   void configure(Tensor<dtype> *input, Matrix<dtype> **mat, Matrix<dtype> *grad,
