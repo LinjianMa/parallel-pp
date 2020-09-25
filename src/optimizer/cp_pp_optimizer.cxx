@@ -6,7 +6,8 @@ using namespace CTF;
 
 template <typename dtype>
 CPPPOptimizer<dtype>::CPPPOptimizer(int order, int r, World &dw,
-                                    double tol_restart_dt, bool use_msdt, bool renew_ppoperator)
+                                    double tol_restart_dt, bool use_msdt,
+                                    bool renew_ppoperator)
     : CPDTOptimizer<dtype>(order, r, dw, use_msdt, renew_ppoperator) {
   this->tol_restart_dt = tol_restart_dt;
   this->dW = (Matrix<> **)malloc(order * sizeof(Matrix<> *));

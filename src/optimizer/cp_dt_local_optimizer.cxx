@@ -14,7 +14,8 @@ CPDTLocalOptimizer<dtype>::CPDTLocalOptimizer(int order, int r, World &dw,
 
 template <typename dtype>
 CPDTLocalOptimizer<dtype>::CPDTLocalOptimizer(int order, int r, World &dw,
-                                              bool use_msdt, bool renew_ppoperator)
+                                              bool use_msdt,
+                                              bool renew_ppoperator)
     : CPDTOptimizer<dtype>(order, r, dw, use_msdt, renew_ppoperator) {
   local_mttkrp = new LocalMTTKRP<dtype>(order, r, dw);
 }
@@ -51,7 +52,8 @@ void CPDTLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
   if (this->world->rank == 0) {
     cout << "is equidimentional: " << this->is_equidimentional << endl;
     for (int i = 0; i < this->order; i++) {
-    cout << "V_local_lens[" << i << "]: " << this->local_mttkrp->V_local->lens[i] << endl;
+      cout << "V_local_lens[" << i
+           << "]: " << this->local_mttkrp->V_local->lens[i] << endl;
     }
   }
 }
@@ -130,7 +132,8 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
   // clear the Hash Table
   if (this->is_equidimentional == false) {
     for (auto const &x : this->mttkrp_map) {
-      if (find(this->inter_for_pp.begin(), this->inter_for_pp.end(), x.second) == this->inter_for_pp.end()) {
+      if (find(this->inter_for_pp.begin(), this->inter_for_pp.end(),
+               x.second) == this->inter_for_pp.end()) {
         delete x.second;
       }
     }
@@ -140,8 +143,10 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
 
   // consider init_pp
   if (this->renew_ppoperator == true) {
-    CPDTOptimizer<dtype>::construct_inter_for_pp(local_mttkrp->sworld, local_mttkrp->V_local->lens, this->left_index);
-    this->mttkrp_map[this->seq_tree_top] = this->inter_for_pp[this->inter_for_pp.size() - 1];
+    CPDTOptimizer<dtype>::construct_inter_for_pp(
+        local_mttkrp->sworld, local_mttkrp->V_local->lens, this->left_index);
+    this->mttkrp_map[this->seq_tree_top] =
+        this->inter_for_pp[this->inter_for_pp.size() - 1];
   }
 
   // reinitialize

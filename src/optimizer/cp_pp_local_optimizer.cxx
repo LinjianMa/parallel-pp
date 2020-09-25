@@ -6,10 +6,13 @@ using namespace CTF;
 
 template <typename dtype>
 CPPPLocalOptimizer<dtype>::CPPPLocalOptimizer(int order, int r, World &dw,
-                                              double tol_restart_dt, bool use_msdt, bool renew_ppoperator)
-    : CPPPOptimizer<dtype>(order, r, dw, tol_restart_dt, use_msdt, renew_ppoperator),
-      CPDTLocalOptimizer<dtype>(order, r, dw, use_msdt, renew_ppoperator), CPDTOptimizer<dtype>(
-                                                          order, r, dw, use_msdt, renew_ppoperator) {
+                                              double tol_restart_dt,
+                                              bool use_msdt,
+                                              bool renew_ppoperator)
+    : CPPPOptimizer<dtype>(order, r, dw, tol_restart_dt, use_msdt,
+                           renew_ppoperator),
+      CPDTLocalOptimizer<dtype>(order, r, dw, use_msdt, renew_ppoperator),
+      CPDTOptimizer<dtype>(order, r, dw, use_msdt, renew_ppoperator) {
   this->dW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   this->WTW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   this->WTdW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
@@ -76,9 +79,11 @@ void CPPPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
   }
 
   if (this->use_msdt == false) {
-    this->ppdt = new PPDimensionTree(this->order, this->local_mttkrp->sworld, this->local_mttkrp->V_local);
+    this->ppdt = new PPDimensionTree(this->order, this->local_mttkrp->sworld,
+                                     this->local_mttkrp->V_local);
   } else {
-    this->ppdt = new PPDimensionTree(this->order, this->local_mttkrp->sworld, this->local_mttkrp->V_local,
+    this->ppdt = new PPDimensionTree(this->order, this->local_mttkrp->sworld,
+                                     this->local_mttkrp->V_local,
                                      this->local_mttkrp->trans_V_local_map,
                                      this->local_mttkrp->trans_V_str_map);
   }
@@ -114,9 +119,9 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
     double dW_norm = this->dW[i]->norm2();
     double W_norm = this->W[i]->norm2();
 
-  if (this->world->rank == 0) {
-    cout << dW_norm / W_norm << endl;
-  }
+    if (this->world->rank == 0) {
+      cout << dW_norm / W_norm << endl;
+    }
 
     if (dW_norm / W_norm < this->tol_restart_dt) {
       num_smallupdate += 1;
@@ -195,9 +200,9 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
     double dW_norm = this->dW[i]->norm2();
     double W_norm = this->W[i]->norm2();
 
-  if (this->world->rank == 0) {
-    cout << dW_norm / W_norm << endl;
-  }
+    if (this->world->rank == 0) {
+      cout << dW_norm / W_norm << endl;
+    }
 
     if (dW_norm / W_norm > this->tol_restart_dt) {
       num_bigupdate += 1;

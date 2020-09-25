@@ -20,7 +20,7 @@ PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T) {
 PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T,
                                  map<int, Tensor<> *> trans_T_map,
                                  map<int, string> trans_T_str_map)
-  : PPDimensionTree(order, world, T) {
+    : PPDimensionTree(order, world, T) {
   this->trans_T_map = trans_T_map;
   this->trans_T_str_map = trans_T_str_map;
   if (trans_T_str_map.size() != 0) {
@@ -139,7 +139,8 @@ void PPDimensionTree::get_parentnode(vector<int> nodeindex,
   }
 }
 
-void PPDimensionTree::initialize_treenode(vector<int> nodeindex, Matrix<> **mat) {
+void PPDimensionTree::initialize_treenode(vector<int> nodeindex,
+                                          Matrix<> **mat) {
   string nodename = get_nodename(nodeindex);
   if (name_index_map.find(nodename) != name_index_map.end()) {
     return;
@@ -172,7 +173,8 @@ void PPDimensionTree::initialize_treenode(vector<int> nodeindex, Matrix<> **mat)
       else
         lens[ii] = this->T->lens[int(out_str[ii] - 'a')];
     }
-    name_tensor_map[nodename] = new Tensor<>(strlen(out_str), lens, *this->world);
+    name_tensor_map[nodename] =
+        new Tensor<>(strlen(out_str), lens, *this->world);
     name_tensor_map[nodename]->operator[](out_str) +=
         name_tensor_map[parent_nodename]->operator[](parent_str) *
         mat[contract_index]->operator[](mat_str);
@@ -184,8 +186,10 @@ void PPDimensionTree::initialize_treenode(vector<int> nodeindex, Matrix<> **mat)
   name_index_map[nodename] = nodeindex;
 
   if (dw.rank == 0) {
-    cout << "nodename is: " << nodename << "parent nodename is: " << parent_nodename << endl;
-    cout << "einstr is: " << out_str << "=" << parent_str << "," << mat_str << endl;
+    cout << "nodename is: " << nodename
+         << "parent nodename is: " << parent_nodename << endl;
+    cout << "einstr is: " << out_str << "=" << parent_str << "," << mat_str
+         << endl;
   }
   t_pp_initialize_treenode.stop();
 }
@@ -251,7 +255,7 @@ void PPDimensionTree::initialize_tree(Matrix<> **mat) {
   initialize_tree_root();
 
   for (auto const &nodeindex : this->pp_operator_indices) {
-      initialize_treenode(nodeindex, mat);
+    initialize_treenode(nodeindex, mat);
   }
   for (int ii = 0; ii < this->order; ii++) {
     vector<int> nodeindex = {ii};

@@ -20,7 +20,8 @@ public:
 
   CPD(int order, int *size, int r, World &dw);
 
-  CPD(int order, int *size, int r, World &dw, double tol_restart_dt, bool use_msdt, bool renew_ppoperator);
+  CPD(int order, int *size, int r, World &dw, double tol_restart_dt,
+      bool use_msdt, bool renew_ppoperator);
 
   CPD(int order, int *size, int r, World &dw, bool use_msdt);
 

@@ -152,7 +152,8 @@ void mttkrp_map_DT(map<string, Tensor<>> &mttkrp_map,
   return;
 }
 
-void build_V(Tensor<> &V, Matrix<> **W, int order, World &dw, vector<int> const mesh) {
+void build_V(Tensor<> &V, Matrix<> **W, int order, World &dw,
+             vector<int> const mesh) {
   Timer tbuild_V("build_V");
   tbuild_V.start();
 

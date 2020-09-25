@@ -8,7 +8,8 @@ char *getCmdOption(char **begin, char **end, const std::string &option) {
   return 0;
 }
 
-vector<int> getVectorCmdOption(char **begin, char **end, const std::string &option) {
+vector<int> getVectorCmdOption(char **begin, char **end,
+                               const std::string &option) {
   vector<int> ret_vector = {};
   char **itr = std::find(begin, end, option);
   ++itr;
@@ -38,21 +39,21 @@ int main(int argc, char **argv) {
   r2 : random tensor
   o1 : coil-100 dataset
   */
-  int dim;                // number of dimensions
-  vector<int> sizes;      // tensor size in each dimension
+  int dim;                         // number of dimensions
+  vector<int> sizes;               // tensor size in each dimension
   vector<int> processor_mesh = {}; // the physical processor mesh grid
-  int R;                  // decomposition rank
-  int issparse;           // whether use the sparse routine or not
-  double tol;             // global convergance tolerance
-  double pp_res_tol;      // pp restart tolerance
-  double lambda_;         // regularization param
-  double magni;           // pp update magnitude
-  char *filename;         // output csv filename
-  double col_min;         // collinearity min
-  double col_max;         // collinearity max
-  double ratio_noise;     // collinearity ratio of noise
-  double timelimit = 5e7; // time limits
-  int maxsweep = 5e7;     // maximum sweeps
+  int R;                           // decomposition rank
+  int issparse;                    // whether use the sparse routine or not
+  double tol;                      // global convergance tolerance
+  double pp_res_tol;               // pp restart tolerance
+  double lambda_;                  // regularization param
+  double magni;                    // pp update magnitude
+  char *filename;                  // output csv filename
+  double col_min;                  // collinearity min
+  double col_max;                  // collinearity max
+  double ratio_noise;              // collinearity ratio of noise
+  double timelimit = 5e7;          // time limits
+  int maxsweep = 5e7;              // maximum sweeps
   int resprint = 1;
   char *tensorfile;
 
@@ -82,7 +83,8 @@ int main(int argc, char **argv) {
     use_msdt = false;
   }
   if (getCmdOption(input_str, input_str + in_num, "-ppoperator")) {
-    int ppoperator = atoi(getCmdOption(input_str, input_str + in_num, "-ppoperator"));
+    int ppoperator =
+        atoi(getCmdOption(input_str, input_str + in_num, "-ppoperator"));
     if (ppoperator > 0)
       renew_ppoperator = true;
   }
@@ -206,7 +208,8 @@ int main(int argc, char **argv) {
     if (dw.rank == 0) {
       cout << "  tensor=  " << tensor << "  method=  " << method << endl;
       cout << "  dim=  " << dim << "  rank=  " << R
-           << "  use_msdt=  " << use_msdt << "  renew_ppoperator=  " << renew_ppoperator << endl;
+           << "  use_msdt=  " << use_msdt
+           << "  renew_ppoperator=  " << renew_ppoperator << endl;
       cout << "  issparse=  " << issparse << "  tolerance=  " << tol
            << "  restarttol=  " << pp_res_tol << endl;
       cout << "  lambda=  " << lambda_ << "  magnitude=  " << magni
@@ -387,15 +390,16 @@ int main(int argc, char **argv) {
       if (dw.rank == 0) {
         cout << "============CPPPOptimizer=============" << endl;
       }
-      CPD<double, CPPPOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol, use_msdt, renew_ppoperator);
+      CPD<double, CPPPOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol,
+                                               use_msdt, renew_ppoperator);
       decom.Init(&V, W);
       decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 5) {
       if (dw.rank == 0) {
         cout << "============CPPPLocalOptimizer=============" << endl;
       }
-      CPD<double, CPPPLocalOptimizer<double>> decom(dim, lens, R, dw,
-                                                    pp_res_tol, use_msdt, renew_ppoperator);
+      CPD<double, CPPPLocalOptimizer<double>> decom(
+          dim, lens, R, dw, pp_res_tol, use_msdt, renew_ppoperator);
       decom.Init(&V, W);
       decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     }

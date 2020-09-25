@@ -40,7 +40,8 @@ CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw, bool use_msdt)
 }
 
 template <typename dtype>
-CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw, bool use_msdt, bool renew_ppoperator)
+CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw, bool use_msdt,
+                                    bool renew_ppoperator)
     : CPDTOptimizer<dtype>(order, r, dw, use_msdt) {
   if (use_msdt == true) {
     this->renew_ppoperator = renew_ppoperator;
@@ -68,12 +69,16 @@ void CPDTOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> **mat,
 }
 
 template <typename dtype>
-void CPDTOptimizer<dtype>::construct_inter_for_pp(World *dw, int64_t *init_tensor_lens, int mode) {
+void CPDTOptimizer<dtype>::construct_inter_for_pp(World *dw,
+                                                  int64_t *init_tensor_lens,
+                                                  int mode) {
   get_first_inter_params(mode);
   int lens[strlen(seq_map_init)];
   for (int ii = 0; ii < strlen(seq_map_init); ii++) {
-    if(seq_map_init[ii] == '*') lens[ii] = this->rank;
-    else lens[ii] = init_tensor_lens[int(seq_map_init[ii] - 'a')];
+    if (seq_map_init[ii] == '*')
+      lens[ii] = this->rank;
+    else
+      lens[ii] = init_tensor_lens[int(seq_map_init[ii] - 'a')];
   }
   if (this->inter_for_pp.size() < 3) {
     Tensor<> *new_T = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
@@ -81,15 +86,15 @@ void CPDTOptimizer<dtype>::construct_inter_for_pp(World *dw, int64_t *init_tenso
     return;
   }
   if (this->is_equidimentional == true) {
-    Tensor<> * temp = this->inter_for_pp[0];
+    Tensor<> *temp = this->inter_for_pp[0];
     this->inter_for_pp[0] = this->inter_for_pp[1];
     this->inter_for_pp[1] = this->inter_for_pp[2];
     this->inter_for_pp[2] = temp;
   } else {
-    Tensor<> * temp = this->inter_for_pp[0];
+    Tensor<> *temp = this->inter_for_pp[0];
     this->inter_for_pp[0] = this->inter_for_pp[1];
     this->inter_for_pp[1] = this->inter_for_pp[2];
-    delete(temp);
+    delete (temp);
     this->inter_for_pp[2] = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
   }
 }
@@ -248,7 +253,8 @@ template <typename dtype> double CPDTOptimizer<dtype>::step_msdt() {
   // clear the Hash Table
   if (this->is_equidimentional == false) {
     for (auto const &x : this->mttkrp_map) {
-      if (find(this->inter_for_pp.begin(), this->inter_for_pp.end(), x.second) == this->inter_for_pp.end()) {
+      if (find(this->inter_for_pp.begin(), this->inter_for_pp.end(),
+               x.second) == this->inter_for_pp.end()) {
         delete x.second;
       }
     }

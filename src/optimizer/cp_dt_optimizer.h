@@ -12,7 +12,8 @@ template <typename dtype> class CPDTOptimizer : public CPOptimizer<dtype> {
 public:
   CPDTOptimizer(int order, int r, World &dw, bool use_msdt);
 
-  CPDTOptimizer(int order, int r, World &dw, bool use_msdt, bool renew_ppoperator);
+  CPDTOptimizer(int order, int r, World &dw, bool use_msdt,
+                bool renew_ppoperator);
 
   ~CPDTOptimizer();
 
