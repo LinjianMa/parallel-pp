@@ -32,6 +32,8 @@ public:
 
   void construct_pp_operator_indices();
 
+  void save_top_intermediate();
+
   int order;
   World *world;
 
@@ -48,6 +50,8 @@ public:
   World dw;
 
   vector<vector<int>> pp_operator_indices = {};
+
+  vector<Tensor<> *> inter_for_pp = {};
 };
 
 #endif

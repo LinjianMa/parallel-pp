@@ -130,7 +130,9 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
   // clear the Hash Table
   if (this->is_equidimentional == false) {
     for (auto const &x : this->mttkrp_map) {
-      delete x.second;
+      if (find(this->inter_for_pp.begin(), this->inter_for_pp.end(), x.second) == this->inter_for_pp.end()) {
+        delete x.second;
+      }
     }
     this->mttkrp_map.clear();
   }

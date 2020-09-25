@@ -19,21 +19,13 @@ PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T) {
 
 PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T,
                                  map<int, Tensor<> *> trans_T_map,
-                                 map<int, string> trans_T_str_map) {
-  this->order = order;
-  this->world = world;
-  this->T = T;
+                                 map<int, string> trans_T_str_map)
+  : PPDimensionTree(order, world, T) {
   this->trans_T_map = trans_T_map;
   this->trans_T_str_map = trans_T_str_map;
   if (trans_T_str_map.size() != 0) {
     this->use_transpose_T = true;
   }
-
-  for (int i = 0; i < this->order; i++) {
-    this->fulllist.push_back(i);
-  }
-  World dw();
-  construct_pp_operator_indices();
 }
 
 PPDimensionTree::~PPDimensionTree() {}
@@ -148,14 +140,13 @@ void PPDimensionTree::get_parentnode(vector<int> nodeindex,
 }
 
 void PPDimensionTree::initialize_treenode(vector<int> nodeindex, Matrix<> **mat) {
+  string nodename = get_nodename(nodeindex);
+  if (name_index_map.find(nodename) != name_index_map.end()) {
+    return;
+  }
+
   Timer t_pp_initialize_treenode("pp_initialize_treenode");
   t_pp_initialize_treenode.start();
-
-  string nodename = get_nodename(nodeindex);
-
-  if (dw.rank == 0) {
-    cout << "nodename is: " << nodename << endl;
-  }
 
   string parent_nodename;
   vector<int> parent_nodeindex(this->order);
@@ -193,9 +184,9 @@ void PPDimensionTree::initialize_treenode(vector<int> nodeindex, Matrix<> **mat)
   name_index_map[nodename] = nodeindex;
 
   if (dw.rank == 0) {
+    cout << "nodename is: " << nodename << "parent nodename is: " << parent_nodename << endl;
     cout << "einstr is: " << out_str << "=" << parent_str << "," << mat_str << endl;
   }
-
   t_pp_initialize_treenode.stop();
 }
 
@@ -218,11 +209,45 @@ void PPDimensionTree::initialize_tree_root() {
   }
 }
 
+void PPDimensionTree::save_top_intermediate() {
+  Timer t_pp_save_top_intermediate("pp_save_top_intermediate");
+  t_pp_save_top_intermediate.start();
+
+  for (int mode = this->order - 1; mode >= this->order - 3; mode--) {
+    char name[100];
+    name[order - 1] = '\0';
+    vector<int> nodeindex(this->order - 1);
+    int j = 0;
+    for (int i = mode + 1; i < order; i++) {
+      name[j] = 'a' + i;
+      nodeindex.push_back(i);
+      j++;
+    }
+    for (int i = 0; i < mode; i++) {
+      name[j] = 'a' + i;
+      nodeindex.push_back(i);
+      j++;
+    }
+    string nodename = string(name);
+    this->name_tensor_map[nodename] = this->inter_for_pp[order - mode - 1];
+    this->name_index_map[nodename] = nodeindex;
+  }
+
+  t_pp_save_top_intermediate.stop();
+}
+
 void PPDimensionTree::initialize_tree(Matrix<> **mat) {
   Timer t_pp_initialize_tree("pp_initialize_tree");
   t_pp_initialize_tree.start();
 
+  if (dw.rank == 0) {
+    cout << "***** pairwise perturbation initialize tree *****" << endl;
+  }
+
   this->name_index_map.clear();
+  if (this->inter_for_pp.size() != 0) {
+    save_top_intermediate();
+  }
   initialize_tree_root();
 
   for (auto const &nodeindex : this->pp_operator_indices) {

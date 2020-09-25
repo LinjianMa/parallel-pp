@@ -39,6 +39,16 @@ CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw, bool use_msdt)
   first_subtree = true;
 }
 
+template <typename dtype>
+CPDTOptimizer<dtype>::CPDTOptimizer(int order, int r, World &dw, bool use_msdt, bool renew_ppoperator)
+    : CPDTOptimizer<dtype>(order, r, dw, use_msdt) {
+  if (use_msdt == true) {
+    this->renew_ppoperator = renew_ppoperator;
+  } else {
+    this->renew_ppoperator = false;
+  }
+}
+
 template <typename dtype> CPDTOptimizer<dtype>::~CPDTOptimizer() {
   // delete S;
 }
@@ -58,20 +68,39 @@ void CPDTOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> **mat,
 }
 
 template <typename dtype>
-void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
-                                           Matrix<> **mat, Tensor<> *T,
-                                           const char *seq_T,
-                                           int64_t *init_tensor_lens) {
-  Timer t_mttkrp_map_init("mttkrp_map_init");
-  t_mttkrp_map_init.start();
+void CPDTOptimizer<dtype>::construct_inter_for_pp(World *dw, int64_t *init_tensor_lens, int mode) {
+  get_first_inter_params(mode);
+  int lens[strlen(seq_map_init)];
+  for (int ii = 0; ii < strlen(seq_map_init); ii++) {
+    if(seq_map_init[ii] == '*') lens[ii] = this->rank;
+    else lens[ii] = init_tensor_lens[int(seq_map_init[ii] - 'a')];
+  }
+  if (this->inter_for_pp.size() < 3) {
+    Tensor<> *new_T = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
+    this->inter_for_pp.push_back(new_T);
+    return;
+  }
+  if (this->is_equidimentional == true) {
+    Tensor<> * temp = this->inter_for_pp[0];
+    this->inter_for_pp[0] = this->inter_for_pp[1];
+    this->inter_for_pp[1] = this->inter_for_pp[2];
+    this->inter_for_pp[2] = temp;
+  } else {
+    Tensor<> * temp = this->inter_for_pp[0];
+    this->inter_for_pp[0] = this->inter_for_pp[1];
+    this->inter_for_pp[1] = this->inter_for_pp[2];
+    delete(temp);
+    this->inter_for_pp[2] = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
+  }
+}
 
-  int order = this->order;
-
+template <typename dtype>
+void CPDTOptimizer<dtype>::get_first_inter_params(int left_index) {
   // build seq_map_init
-  seq_map_init[order] = '\0';
-  seq_map_init[order - 1] = '*';
+  seq_map_init[this->order] = '\0';
+  seq_map_init[this->order - 1] = '*';
   int j = 0;
-  for (int i = left_index + 1; i < order; i++) {
+  for (int i = left_index + 1; i < this->order; i++) {
     seq_map_init[j] = 'a' + i;
     j++;
   }
@@ -79,21 +108,32 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
     seq_map_init[j] = 'a' + i;
     j++;
   }
+}
+
+template <typename dtype>
+void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
+                                           Matrix<> **mat, Tensor<> *T,
+                                           const char *seq_T,
+                                           int64_t *init_tensor_lens) {
+  Timer t_mttkrp_map_init("mttkrp_map_init");
+  t_mttkrp_map_init.start();
+
   // build seq_matrix
   char seq_matrix[3];
   seq_matrix[2] = '\0';
   seq_matrix[1] = '*';
   seq_matrix[0] = 'a' + left_index;
-  // store that into the mttkrp_map
+
+  get_first_inter_params(left_index);
   int lens[strlen(seq_map_init)];
   for (int ii = 0; ii < strlen(seq_map_init); ii++) {
     if (seq_map_init[ii] == '*')
-      lens[ii] = mat[0]->ncol;
+      lens[ii] = this->rank;
     else
       lens[ii] = init_tensor_lens[int(seq_map_init[ii] - 'a')];
   }
-  Timer t_mttkrp_map_first_intermediate("mttkrp_map_first_intermediate");
-  t_mttkrp_map_first_intermediate.start();
+
+  // store that into the mttkrp_map
   if (mttkrp_map.find(seq_tree_top) == mttkrp_map.end()) {
     mttkrp_map[seq_tree_top] =
         new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
@@ -104,7 +144,6 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
         (*T)[seq_T] * mat[left_index]->operator[](seq_matrix);
   }
   mttkrp_exist_map[seq_tree_top] = true;
-  t_mttkrp_map_first_intermediate.stop();
 
   t_mttkrp_map_init.stop();
 }
@@ -209,11 +248,19 @@ template <typename dtype> double CPDTOptimizer<dtype>::step_msdt() {
   // clear the Hash Table
   if (this->is_equidimentional == false) {
     for (auto const &x : this->mttkrp_map) {
-      delete x.second;
+      if (find(this->inter_for_pp.begin(), this->inter_for_pp.end(), x.second) == this->inter_for_pp.end()) {
+        delete x.second;
+      }
     }
     mttkrp_map.clear();
   }
   mttkrp_exist_map.clear();
+
+  // consider init_pp
+  if (this->renew_ppoperator == true) {
+    construct_inter_for_pp(this->world, this->V->lens, left_index);
+    mttkrp_map[seq_tree_top] = this->inter_for_pp[inter_for_pp.size() - 1];
+  }
 
   // reinitialize
   dt->update_indexes(indexes, left_index);

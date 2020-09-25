@@ -114,6 +114,10 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
     double dW_norm = this->dW[i]->norm2();
     double W_norm = this->W[i]->norm2();
 
+  if (this->world->rank == 0) {
+    cout << dW_norm / W_norm << endl;
+  }
+
     if (dW_norm / W_norm < this->tol_restart_dt) {
       num_smallupdate += 1;
     }
@@ -190,6 +194,10 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
   for (int i = 0; i < this->order; i++) {
     double dW_norm = this->dW[i]->norm2();
     double W_norm = this->W[i]->norm2();
+
+  if (this->world->rank == 0) {
+    cout << dW_norm / W_norm << endl;
+  }
 
     if (dW_norm / W_norm > this->tol_restart_dt) {
       num_bigupdate += 1;

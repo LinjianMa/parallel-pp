@@ -12,10 +12,14 @@ template <typename dtype> class CPDTOptimizer : public CPOptimizer<dtype> {
 public:
   CPDTOptimizer(int order, int r, World &dw, bool use_msdt);
 
+  CPDTOptimizer(int order, int r, World &dw, bool use_msdt, bool renew_ppoperator);
+
   ~CPDTOptimizer();
 
   void configure(Tensor<dtype> *input, Matrix<dtype> **mat, Matrix<dtype> *grad,
                  double lambda);
+
+  void construct_inter_for_pp(World *dw, int64_t *init_tensor_lens, int mode);
 
   double step();
 
@@ -30,6 +34,8 @@ public:
    */
   void mttkrp_map_init(int left_index, World *dw, Matrix<> **mat, Tensor<> *T,
                        const char *seq_T, int64_t *init_tensor_lens);
+
+  void get_first_inter_params(int left_index);
 
   /**
    * \brief MTTKRP contractions except the first level.
@@ -69,7 +75,10 @@ public:
   // dimension tree
   DimensionTree *dt = NULL;
   // whether is equidimentional
-  bool is_equidimentional;
+  bool is_equidimentional = false;
+
+  bool renew_ppoperator = false;
+  vector<Tensor<> *> inter_for_pp = {};
 };
 
 #include "cp_dt_optimizer.cxx"
