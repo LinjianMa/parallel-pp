@@ -120,7 +120,7 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
                                            Matrix<> **mat, Tensor<> *T,
                                            const char *seq_T,
                                            int64_t *init_tensor_lens) {
-  Timer t_mttkrp_map_init("mttkrp_map_init");
+  Timer t_mttkrp_map_init("partial_MTTKRP");
   t_mttkrp_map_init.start();
 
   // build seq_matrix
@@ -156,7 +156,7 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
 template <typename dtype>
 void CPDTOptimizer<dtype>::mttkrp_map_DT(string index, World *dw,
                                          Matrix<> **mat, Tensor<> *T) {
-  Timer t_mttkrp_map_DT("mttkrp_map_DT");
+  Timer t_mttkrp_map_DT("multi-TTV");
   t_mttkrp_map_DT.start();
 
   char const *index_char = index.c_str();

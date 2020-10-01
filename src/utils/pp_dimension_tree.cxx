@@ -146,13 +146,16 @@ void PPDimensionTree::initialize_treenode(vector<int> nodeindex,
     return;
   }
 
-  Timer t_pp_initialize_treenode("pp_initialize_treenode");
-  t_pp_initialize_treenode.start();
-
   string parent_nodename;
   vector<int> parent_nodeindex(this->order);
   int contract_index;
   get_parentnode(nodeindex, parent_nodename, parent_nodeindex, contract_index);
+
+  Timer t_pp_initialize_treenode = Timer("pp_init_multi-TTV");
+  if (parent_nodeindex.size() == this->order) {
+    t_pp_initialize_treenode = Timer("pp_init_partial-MTTKRP");
+  }
+  t_pp_initialize_treenode.start();
 
   vector<string> einstr =
       get_einstr(nodeindex, parent_nodeindex, contract_index);
@@ -217,7 +220,8 @@ void PPDimensionTree::save_top_intermediate() {
   Timer t_pp_save_top_intermediate("pp_save_top_intermediate");
   t_pp_save_top_intermediate.start();
 
-  for (int mode = this->order - 1; mode >= this->order - 3; mode--) {
+  // TODO: change this back
+  for (int mode = this->order - 3; mode >= this->order - 3; mode--) {
     char name[100];
     name[order - 1] = '\0';
     vector<int> nodeindex(this->order - 1);
