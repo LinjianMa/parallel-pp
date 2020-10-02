@@ -72,6 +72,10 @@ template <typename dtype>
 void CPDTOptimizer<dtype>::construct_inter_for_pp(World *dw,
                                                   int64_t *init_tensor_lens,
                                                   int mode) {
+
+  // TODO: change this
+  int cachesize = 1;
+
   get_first_inter_params(mode);
   int lens[strlen(seq_map_init)];
   for (int ii = 0; ii < strlen(seq_map_init); ii++) {
@@ -80,22 +84,24 @@ void CPDTOptimizer<dtype>::construct_inter_for_pp(World *dw,
     else
       lens[ii] = init_tensor_lens[int(seq_map_init[ii] - 'a')];
   }
-  if (this->inter_for_pp.size() < 3) {
+  if (this->inter_for_pp.size() < cachesize) {
     Tensor<> *new_T = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
     this->inter_for_pp.push_back(new_T);
     return;
   }
   if (this->is_equidimentional == true) {
     Tensor<> *temp = this->inter_for_pp[0];
-    this->inter_for_pp[0] = this->inter_for_pp[1];
-    this->inter_for_pp[1] = this->inter_for_pp[2];
-    this->inter_for_pp[2] = temp;
+    for (int j = 1; j < cachesize; j++) {
+      this->inter_for_pp[j-1] = this->inter_for_pp[j];
+    }
+    this->inter_for_pp[cachesize - 1] = temp;
   } else {
     Tensor<> *temp = this->inter_for_pp[0];
-    this->inter_for_pp[0] = this->inter_for_pp[1];
-    this->inter_for_pp[1] = this->inter_for_pp[2];
+    for (int j = 1; j < cachesize; j++) {
+      this->inter_for_pp[j-1] = this->inter_for_pp[j];
+    }
     delete (temp);
-    this->inter_for_pp[2] = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
+    this->inter_for_pp[cachesize - 1] = new Tensor<dtype>(strlen(seq_map_init), lens, *dw);
   }
 }
 

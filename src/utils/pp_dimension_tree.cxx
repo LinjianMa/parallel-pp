@@ -221,7 +221,7 @@ void PPDimensionTree::save_top_intermediate() {
   t_pp_save_top_intermediate.start();
 
   // TODO: change this back
-  for (int mode = this->order - 3; mode >= this->order - 3; mode--) {
+  for (int mode = this->order - 3; mode < this->order - 3 + this->inter_for_pp.size(); mode++) {
     char name[100];
     name[order - 1] = '\0';
     vector<int> nodeindex(this->order - 1);
@@ -237,7 +237,8 @@ void PPDimensionTree::save_top_intermediate() {
       j++;
     }
     string nodename = string(name);
-    this->name_tensor_map[nodename] = this->inter_for_pp[order - mode - 1];
+    int index = this->inter_for_pp.size() - 1 - (mode - this->order + 3);
+    this->name_tensor_map[nodename] = this->inter_for_pp[index];
     this->name_index_map[nodename] = nodeindex;
   }
 

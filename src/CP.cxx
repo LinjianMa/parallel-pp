@@ -139,7 +139,7 @@ bool CPD<dtype, Optimizer>::als(double tol, double Vnorm, double timelimit,
                 << "\n"; // Headings for file
   }
 
-  while (fabs(sweeps - maxsweep) > 1e-5) {
+  while (fabs(sweeps - maxsweep) > 1e-5 && sweeps < maxsweep) {
     // print the gradient norm
     if (sweeps - int(sweeps) == 0 &&
         (int(sweeps) % resprint == 0 || sweeps == 0)) {
