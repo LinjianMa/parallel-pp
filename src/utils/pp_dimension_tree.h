@@ -26,11 +26,13 @@ public:
 
   void initialize_treenode(vector<int> nodeindex, Matrix<> **mat);
 
-  void initialize_tree_root();
+  void initialize_tree_root(Matrix<> **mat);
 
   void initialize_tree(Matrix<> **mat);
 
   void construct_pp_operator_indices();
+
+  void get_first_level_intermediate_parameters(int mode, vector<int>& nodeindex);
 
   void save_top_intermediate();
 

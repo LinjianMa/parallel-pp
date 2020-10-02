@@ -98,6 +98,7 @@ void PPDimensionTree::get_parentnode(vector<int> nodeindex,
                                      string &parent_nodename,
                                      vector<int> &parent_index,
                                      int &contract_index) {
+  // matrix -> pp operator
   if (nodeindex.size() == 1) {
     for (auto const &index : this->pp_operator_indices) {
       if (nodeindex[0] == index[0] || nodeindex[0] == index[1]) {
@@ -108,6 +109,27 @@ void PPDimensionTree::get_parentnode(vector<int> nodeindex,
           contract_index = index[1];
         }
         return;
+      }
+    }
+  }
+  // second level intermediate -> first level intermediate
+  if (nodeindex.size() == this->order - 2) {
+    vector<int> sort_nodeindex = nodeindex;
+    sort(sort_nodeindex.begin(), sort_nodeindex.end());
+    vector<int>::iterator it;
+    for (auto const &x : this->name_index_map) {
+      if (x.second.size() == this->order - 1) {
+        vector<int> sort_parentlist = x.second;
+        sort(sort_parentlist.begin(), sort_parentlist.end());
+        vector<int> comp_index(this->order);
+        it = set_difference(sort_parentlist.begin(), sort_parentlist.end(), sort_nodeindex.begin(), sort_nodeindex.end(), comp_index.begin());
+        comp_index.resize(it - comp_index.begin());
+        if (comp_index.size() == 1) {
+          contract_index = comp_index[0];
+          parent_index = x.second;
+          parent_nodename = get_nodename(parent_index);
+          return;
+        }
       }
     }
   }
@@ -128,8 +150,8 @@ void PPDimensionTree::get_parentnode(vector<int> nodeindex,
     parent_nodename = this->trans_T_str_map[contract_index];
     parent_index = this->name_index_map[parent_nodename];
   } else {
-    vector<int> comp_parent_index(comp_index.begin() + 1, comp_index.end());
-    contract_index = comp_index[0];
+    vector<int> comp_parent_index(comp_index.begin(), comp_index.end() - 1);
+    contract_index = comp_index[comp_index.size() - 1];
     // parent_index = np.setdiff1d(fulllist, comp_parent_index)
     it = set_difference(fulllist.begin(), fulllist.end(),
                         comp_parent_index.begin(), comp_parent_index.end(),
@@ -150,12 +172,6 @@ void PPDimensionTree::initialize_treenode(vector<int> nodeindex,
   vector<int> parent_nodeindex(this->order);
   int contract_index;
   get_parentnode(nodeindex, parent_nodename, parent_nodeindex, contract_index);
-
-  Timer t_pp_initialize_treenode = Timer("pp_init_multi-TTV");
-  if (parent_nodeindex.size() == this->order) {
-    t_pp_initialize_treenode = Timer("pp_init_partial-MTTKRP");
-  }
-  t_pp_initialize_treenode.start();
 
   vector<string> einstr =
       get_einstr(nodeindex, parent_nodeindex, contract_index);
@@ -190,14 +206,13 @@ void PPDimensionTree::initialize_treenode(vector<int> nodeindex,
 
   if (dw.rank == 0) {
     cout << "nodename is: " << nodename
-         << "parent nodename is: " << parent_nodename << endl;
+         << "   parent nodename is: " << parent_nodename << endl;
     cout << "einstr is: " << out_str << "=" << parent_str << "," << mat_str
          << endl;
   }
-  t_pp_initialize_treenode.stop();
 }
 
-void PPDimensionTree::initialize_tree_root() {
+void PPDimensionTree::initialize_tree_root(Matrix<> **mat) {
   if (this->use_transpose_T == false) {
     string nodename = get_nodename(this->fulllist);
     this->name_index_map[nodename] = this->fulllist;
@@ -214,34 +229,39 @@ void PPDimensionTree::initialize_tree_root() {
       this->name_tensor_map[nodename] = this->trans_T_map[x.first];
     }
   }
+  // first level intermediates
+  Timer pp_init_partial_MTTKRP("pp_init_partial-MTTKRP");
+  for (int mode = 0; mode < 3; mode++) {
+    vector<int> nodeindex;
+    get_first_level_intermediate_parameters(mode, nodeindex);
+    initialize_treenode(nodeindex, mat);
+  }
+  pp_init_partial_MTTKRP.stop();
+}
+
+void PPDimensionTree::get_first_level_intermediate_parameters(int mode, vector<int>& nodeindex) {
+  for (int i = mode + 1; i < order; i++) {
+    nodeindex.push_back(i);
+  }
+  for (int i = 0; i < mode; i++) {
+    nodeindex.push_back(i);
+  }
 }
 
 void PPDimensionTree::save_top_intermediate() {
   Timer t_pp_save_top_intermediate("pp_save_top_intermediate");
   t_pp_save_top_intermediate.start();
-
-  // TODO: change this back
-  for (int mode = this->order - 3; mode < this->order - 3 + this->inter_for_pp.size(); mode++) {
-    char name[100];
-    name[order - 1] = '\0';
-    vector<int> nodeindex(this->order - 1);
-    int j = 0;
-    for (int i = mode + 1; i < order; i++) {
-      name[j] = 'a' + i;
-      nodeindex.push_back(i);
-      j++;
-    }
-    for (int i = 0; i < mode; i++) {
-      name[j] = 'a' + i;
-      nodeindex.push_back(i);
-      j++;
-    }
-    string nodename = string(name);
-    int index = this->inter_for_pp.size() - 1 - (mode - this->order + 3);
+  for (int mode = 0; mode < this->inter_for_pp.size(); mode++) {
+    vector<int> nodeindex;
+    get_first_level_intermediate_parameters(mode, nodeindex);
+    string nodename = get_nodename(nodeindex);
+    int index = this->inter_for_pp.size() - 1 - mode;
     this->name_tensor_map[nodename] = this->inter_for_pp[index];
     this->name_index_map[nodename] = nodeindex;
+    if (dw.rank == 0) {
+      cout << "[save_top_intermediate] nodename is: " << nodename << endl;
+    }
   }
-
   t_pp_save_top_intermediate.stop();
 }
 
@@ -257,8 +277,9 @@ void PPDimensionTree::initialize_tree(Matrix<> **mat) {
   if (this->inter_for_pp.size() != 0) {
     save_top_intermediate();
   }
-  initialize_tree_root();
+  initialize_tree_root(mat);
 
+  Timer pp_init_multi_TTV("pp_init_multi-TTV");
   for (auto const &nodeindex : this->pp_operator_indices) {
     initialize_treenode(nodeindex, mat);
   }
@@ -266,6 +287,6 @@ void PPDimensionTree::initialize_tree(Matrix<> **mat) {
     vector<int> nodeindex = {ii};
     initialize_treenode(nodeindex, mat);
   }
-
+  pp_init_multi_TTV.stop();
   t_pp_initialize_tree.stop();
 }
