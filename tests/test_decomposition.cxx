@@ -18,6 +18,7 @@ void TEST_CPD(World &dw) {
 
   // test dimension
   bool renew_ppoperator = false;
+  int ppmethod = 0;
   CPD<double, CPSimpleOptimizer<double>> decom(3, lens, 5, dw);
   CPD<double, CPLocalOptimizer<double>> decom_local(3, lens, 5, dw);
   CPD<double, CPDTOptimizer<double>> decom_dt(3, lens, 5, dw, false);
@@ -26,9 +27,9 @@ void TEST_CPD(World &dw) {
   CPD<double, CPDTLocalOptimizer<double>> decom_msdt_local(3, lens, 5, dw,
                                                            true);
   CPD<double, CPPPOptimizer<double>> decom_pp(3, lens, 5, dw, 1e-5, true,
-                                              renew_ppoperator);
+                                              renew_ppoperator, ppmethod);
   CPD<double, CPPPLocalOptimizer<double>> decom_pp_local(
-      3, lens, 5, dw, 1e-5, true, renew_ppoperator);
+      3, lens, 5, dw, 1e-5, true, renew_ppoperator, ppmethod);
 
   assert(decom.order == 3);
   assert(decom.rank[0] == 5);
@@ -157,12 +158,13 @@ void TEST_PP(World &dw) {
     lens[i] = size + 3 * i;
 
   bool renew_ppoperator = false;
+  int ppmethod = 0;
   // test dimension
   CPD<double, CPSimpleOptimizer<double>> decom(3, lens, 5, dw);
   CPD<double, CPPPOptimizer<double>> decom_pp(3, lens, 5, dw, 10.0, false,
-                                              renew_ppoperator);
+                                              renew_ppoperator, ppmethod);
   CPD<double, CPPPLocalOptimizer<double>> decom_pp_local(
-      3, lens, 5, dw, 10.0, false, renew_ppoperator);
+      3, lens, 5, dw, 10.0, false, renew_ppoperator, ppmethod);
 
   assert(decom.order == 3);
   assert(decom.rank[0] == 5);
@@ -239,11 +241,12 @@ void TEST_PP_local(World &dw) {
     lens[i] = size + 3 * i;
 
   bool renew_ppoperator = false;
+  int ppmethod = 0;
   // test dimension
   CPD<double, CPPPOptimizer<double>> decom_pp(3, lens, 5, dw, 1., false,
-                                              renew_ppoperator);
+                                              renew_ppoperator, ppmethod);
   CPD<double, CPPPLocalOptimizer<double>> decom_pp_local(
-      3, lens, 5, dw, 1., false, renew_ppoperator);
+      3, lens, 5, dw, 1., false, renew_ppoperator, ppmethod);
 
   Tensor<> *V = new Tensor<>(3, lens, dw);
   V->fill_random(0, 1);

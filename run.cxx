@@ -27,6 +27,7 @@ int main(int argc, char **argv) {
 
   char *tensor; // which tensor    c / r / r2 / o /
   int method;   // 0 simple 1 Local-simple 2 DT 3 Local-DT 4 PP 5 Local-PP
+  int ppmethod;   // 0 simple pp 1 new pp
   bool use_msdt = false;
   bool renew_ppoperator = false;
   double update_percentage_pp; // pp update ratio. For each sweep only update
@@ -70,10 +71,9 @@ int main(int argc, char **argv) {
   }
   if (getCmdOption(input_str, input_str + in_num, "-method")) {
     method = atoi(getCmdOption(input_str, input_str + in_num, "-method"));
-    if (method < 0)
-      method = 0;
-  } else {
-    method = 0;
+  }
+  if (getCmdOption(input_str, input_str + in_num, "-ppmethod")) {
+    ppmethod = atoi(getCmdOption(input_str, input_str + in_num, "-ppmethod"));
   }
   if (getCmdOption(input_str, input_str + in_num, "-msdt")) {
     int msdt = atoi(getCmdOption(input_str, input_str + in_num, "-msdt"));
@@ -206,7 +206,7 @@ int main(int argc, char **argv) {
     IASSERT(sizes.size() == dim);
 
     if (dw.rank == 0) {
-      cout << "  tensor=  " << tensor << "  method=  " << method << endl;
+      cout << "  tensor=  " << tensor << "  method=  " << method << "  ppmethod=  " << ppmethod << endl;
       cout << "  dim=  " << dim << "  rank=  " << R
            << "  use_msdt=  " << use_msdt
            << "  renew_ppoperator=  " << renew_ppoperator << endl;
@@ -391,7 +391,7 @@ int main(int argc, char **argv) {
         cout << "============CPPPOptimizer=============" << endl;
       }
       CPD<double, CPPPOptimizer<double>> decom(dim, lens, R, dw, pp_res_tol,
-                                               use_msdt, renew_ppoperator);
+                                               use_msdt, renew_ppoperator, ppmethod);
       decom.Init(&V, W);
       decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     } else if (method == 5) {
@@ -399,7 +399,7 @@ int main(int argc, char **argv) {
         cout << "============CPPPLocalOptimizer=============" << endl;
       }
       CPD<double, CPPPLocalOptimizer<double>> decom(
-          dim, lens, R, dw, pp_res_tol, use_msdt, renew_ppoperator);
+          dim, lens, R, dw, pp_res_tol, use_msdt, renew_ppoperator, ppmethod);
       decom.Init(&V, W);
       decom.als(tol, Vnorm, timelimit, maxsweep, resprint, Plot_File);
     }

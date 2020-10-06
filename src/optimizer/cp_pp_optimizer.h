@@ -12,7 +12,7 @@ class CPPPOptimizer : virtual public CPDTOptimizer<dtype> {
 
 public:
   CPPPOptimizer(int order, int r, World &dw, double tol_restart_dt,
-                bool use_msdt, bool renew_ppoperator);
+                bool use_msdt, bool renew_ppoperator, int ppmethod);
 
   ~CPPPOptimizer();
 
@@ -34,6 +34,7 @@ public:
   bool restart;
   bool pp = false;
   bool reinitialize_tree;
+  int ppmethod = 0;
 
   Matrix<> **dW;
   Matrix<> **update_W = NULL;

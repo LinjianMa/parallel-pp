@@ -7,8 +7,9 @@ using namespace CTF;
 template <typename dtype>
 CPPPOptimizer<dtype>::CPPPOptimizer(int order, int r, World &dw,
                                     double tol_restart_dt, bool use_msdt,
-                                    bool renew_ppoperator)
+                                    bool renew_ppoperator, int ppmethod)
     : CPDTOptimizer<dtype>(order, r, dw, use_msdt, renew_ppoperator) {
+  this->ppmethod = ppmethod;
   this->tol_restart_dt = tol_restart_dt;
   this->dW = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   update_W = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
@@ -38,7 +39,7 @@ void CPPPOptimizer<dtype>::configure(Tensor<dtype> *input, Matrix<dtype> **mat,
     WTdW[i] = new Matrix<>(this->rank, this->rank, *this->world);
   }
 
-  ppdt = new PPDimensionTree(this->order, this->world, input);
+  ppdt = new PPDimensionTree(this->order, this->world, input, this->ppmethod);
 }
 
 template <typename dtype> double CPPPOptimizer<dtype>::step_dt() {
@@ -165,6 +166,22 @@ void CPPPOptimizer<dtype>::mttkrp_approx_second_correction(int i, Matrix<> &S,
       }
     }
     S["ij"] += S_temp["ij"];
+  }
+  if (this->ppmethod == 1) {
+    // first order correction
+    for (auto const &ii : j_list) {
+      if (ii != (i+1)%this->order && ii != (i+this->order-1)%this->order) {
+        S_temp["ij"] = 1.;
+        for (auto const &j : j_list) {
+          if (j == ii) {
+            S_temp["ij"] = S_temp["ij"] * WTdW[j]->operator[]("ij");
+          } else {
+            S_temp["ij"] = S_temp["ij"] * (WTW[j]->operator[]("ij") - WTdW[j]->operator[]("ij"));
+          }
+        }
+        S["ij"] += S_temp["ij"];
+      }
+    }
   }
 
   t_pp_mttkrp_approx.stop();

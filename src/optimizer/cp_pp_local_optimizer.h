@@ -13,7 +13,7 @@ class CPPPLocalOptimizer : public CPPPOptimizer<dtype>,
 
 public:
   CPPPLocalOptimizer(int order, int r, World &dw, double tol_restart_dt,
-                     bool use_msdt, bool renew_ppoperator);
+                     bool use_msdt, bool renew_ppoperator, int ppmethod);
 
   ~CPPPLocalOptimizer();
 

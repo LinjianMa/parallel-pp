@@ -8,9 +8,10 @@ template <typename dtype>
 CPPPLocalOptimizer<dtype>::CPPPLocalOptimizer(int order, int r, World &dw,
                                               double tol_restart_dt,
                                               bool use_msdt,
-                                              bool renew_ppoperator)
+                                              bool renew_ppoperator,
+                                              int ppmethod)
     : CPPPOptimizer<dtype>(order, r, dw, tol_restart_dt, use_msdt,
-                           renew_ppoperator),
+                           renew_ppoperator, ppmethod),
       CPDTLocalOptimizer<dtype>(order, r, dw, use_msdt, renew_ppoperator),
       CPDTOptimizer<dtype>(order, r, dw, use_msdt, renew_ppoperator) {
   this->dW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
@@ -80,12 +81,12 @@ void CPPPLocalOptimizer<dtype>::configure(Tensor<dtype> *input,
 
   if (this->use_msdt == false) {
     this->ppdt = new PPDimensionTree(this->order, this->local_mttkrp->sworld,
-                                     this->local_mttkrp->V_local);
+                                     this->local_mttkrp->V_local, this->ppmethod);
   } else {
     this->ppdt = new PPDimensionTree(this->order, this->local_mttkrp->sworld,
                                      this->local_mttkrp->V_local,
                                      this->local_mttkrp->trans_V_local_map,
-                                     this->local_mttkrp->trans_V_str_map);
+                                     this->local_mttkrp->trans_V_str_map, this->ppmethod);
   }
 }
 

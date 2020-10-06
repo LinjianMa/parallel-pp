@@ -5,10 +5,11 @@
 
 using namespace CTF;
 
-PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T) {
+PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T, int ppmethod) {
   this->order = order;
   this->world = world;
   this->T = T;
+  this->ppmethod = ppmethod;
 
   for (int i = 0; i < this->order; i++) {
     this->fulllist.push_back(i);
@@ -19,8 +20,8 @@ PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T) {
 
 PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T,
                                  map<int, Tensor<> *> trans_T_map,
-                                 map<int, string> trans_T_str_map)
-    : PPDimensionTree(order, world, T) {
+                                 map<int, string> trans_T_str_map, int ppmethod)
+    : PPDimensionTree(order, world, T, ppmethod) {
   this->trans_T_map = trans_T_map;
   this->trans_T_str_map = trans_T_str_map;
   if (trans_T_str_map.size() != 0) {
@@ -31,14 +32,28 @@ PPDimensionTree::PPDimensionTree(int order, World *world, Tensor<> *T,
 PPDimensionTree::~PPDimensionTree() {}
 
 void PPDimensionTree::construct_pp_operator_indices() {
-  for (int ii = 0; ii < this->order; ii++)
-    for (int jj = ii + 1; jj < this->order; jj++) {
-      vector<int> nodeindex = {jj, ii};
-      if (jj - ii < ii + this->order - jj) {
-        nodeindex = {ii, jj};
-      }
+  if (this->ppmethod == 1) {
+    for (int ii = 0; ii < this->order; ii++) {
+      int jj = (ii + 1) % this->order;
+      vector<int> nodeindex = {ii, jj};
+      this->pp_operator_indices.push_back(nodeindex);
+      jj = (ii + this->order - 1) % this->order;
+      nodeindex = {jj, ii};
       this->pp_operator_indices.push_back(nodeindex);
     }
+    return;
+  }
+  if (this->ppmethod == 0) {
+    for (int ii = 0; ii < this->order; ii++)
+      for (int jj = ii + 1; jj < this->order; jj++) {
+        vector<int> nodeindex = {jj, ii};
+        if (jj - ii < ii + this->order - jj) {
+          nodeindex = {ii, jj};
+        }
+        this->pp_operator_indices.push_back(nodeindex);
+      }
+    return;
+  }
 }
 
 string PPDimensionTree::get_nodename(vector<int> nodeindex) {
@@ -231,7 +246,12 @@ void PPDimensionTree::initialize_tree_root(Matrix<> **mat) {
   }
   // first level intermediates
   Timer pp_init_partial_MTTKRP("pp_init_partial-MTTKRP");
-  for (int mode = 0; mode < 3; mode++) {
+  pp_init_partial_MTTKRP.start();
+  vector<int> modes = {0, 1, 2};
+  if (this->ppmethod == 1) {
+    modes = {0, 2};
+  }
+  for (auto const &mode : modes) {
     vector<int> nodeindex;
     get_first_level_intermediate_parameters(mode, nodeindex);
     initialize_treenode(nodeindex, mat);
@@ -280,6 +300,7 @@ void PPDimensionTree::initialize_tree(Matrix<> **mat) {
   initialize_tree_root(mat);
 
   Timer pp_init_multi_TTV("pp_init_multi-TTV");
+  pp_init_multi_TTV.start();
   for (auto const &nodeindex : this->pp_operator_indices) {
     initialize_treenode(nodeindex, mat);
   }

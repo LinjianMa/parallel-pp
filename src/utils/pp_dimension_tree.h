@@ -8,11 +8,11 @@ using namespace CTF;
 class PPDimensionTree {
 
 public:
-  PPDimensionTree(int order, World *world, Tensor<> *T);
+  PPDimensionTree(int order, World *world, Tensor<> *T, int ppmethod);
 
   PPDimensionTree(int order, World *world, Tensor<> *T,
                   map<int, Tensor<> *> trans_T_map,
-                  map<int, string> trans_T_str_map);
+                  map<int, string> trans_T_str_map, int ppmethod);
 
   ~PPDimensionTree();
 
@@ -47,6 +47,7 @@ public:
   map<int, Tensor<> *> trans_T_map;
   map<int, string> trans_T_str_map;
   bool use_transpose_T = false;
+  int ppmethod = 0;
 
   vector<int> fulllist = {};
   World dw;
