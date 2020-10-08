@@ -26,6 +26,8 @@ public:
 
   double step_dt();
 
+  double step_msdt_specific_subtree(int left_index);
+
   double step_msdt();
 
   void solve_one_mode(int i);

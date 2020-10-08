@@ -17,6 +17,7 @@ CPPPLocalOptimizer<dtype>::CPPPLocalOptimizer(int order, int r, World &dw,
   this->dW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   this->WTW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
   this->WTdW_local = (Matrix<> **)malloc(order * sizeof(Matrix<> *));
+  this->pp_stop_mode = this->order - 1;
 }
 
 template <typename dtype> CPPPLocalOptimizer<dtype>::~CPPPLocalOptimizer() {
@@ -98,37 +99,32 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_dt() {
   if (this->world->rank == 0) {
     cout << "***** dt step *****" << endl;
   }
-
   for (int i = 0; i < this->order; i++) {
     this->dW[i]->operator[]("ij") = this->W[i]->operator[]("ij");
   }
-
   if (this->use_msdt == false) {
     CPDTLocalOptimizer<dtype>::step();
     CPDTLocalOptimizer<dtype>::step();
     num_sweep = 1.;
   } else {
-    for (int i = 0; i < this->order; i++) {
-      CPDTLocalOptimizer<dtype>::step();
+    if (this->world->rank == 0) {
+      cout << " this->pp_stop_mode " << this->pp_stop_mode << endl;
     }
-    num_sweep = 1. * (this->order - 1);
+    for (int i = this->pp_stop_mode; i >= 0; i--) {
+      CPDTLocalOptimizer<dtype>::step_msdt_specific_subtree(i % this->order);
+    }
+    num_sweep = 1. * (this->pp_stop_mode + 1) * (this->order - 1) / this->order;
   }
-
   int num_smallupdate = 0;
   for (int i = 0; i < this->order; i++) {
     this->dW[i]->operator[]("ij") -= this->W[i]->operator[]("ij");
     double dW_norm = this->dW[i]->norm2();
     double W_norm = this->W[i]->norm2();
-
-    if (this->world->rank == 0) {
-      cout << dW_norm / W_norm << endl;
-    }
-
+    if (this->world->rank == 0) cout << dW_norm / W_norm << endl;
     if (dW_norm / W_norm < this->tol_restart_dt) {
       num_smallupdate += 1;
     }
   }
-
   if (num_smallupdate == this->order) {
     this->pp = true;
     this->reinitialize_tree = true;
@@ -146,33 +142,24 @@ template <typename dtype>
 void CPPPLocalOptimizer<dtype>::pp_update_after_solve(int i) {
   Timer t_localpp_step_pp("pp_update_after_solve");
   t_localpp_step_pp.start();
+  // TODO: this line can be faster
+  this->W[i]->operator[]("ij") = this->update_W[i]->operator[]("ij");
 
   this->WTW[i]->operator[]("jk") =
       this->update_W[i]->operator[]("ij") * this->update_W[i]->operator[]("ik");
-
-  // TODO: these two lines can be faster
-  this->dW[i]->operator[]("ij") +=
-      this->update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
-  this->W[i]->operator[]("ij") = this->update_W[i]->operator[]("ij");
-
   this->WTdW[i]->operator[]("jk") =
       this->W[i]->operator[]("ij") * this->dW[i]->operator[]("ik");
   memcpy(WTW_local[i]->data, this->WTW[i]->data,
          sizeof(dtype) * WTW_local[i]->ncol * WTW_local[i]->nrow);
   memcpy(WTdW_local[i]->data, this->WTdW[i]->data,
          sizeof(dtype) * WTdW_local[i]->ncol * WTdW_local[i]->nrow);
+  this->local_mttkrp->distribute_W(i, this->local_mttkrp->W, this->local_mttkrp->W_local);
+  this->local_mttkrp->distribute_W(i, this->dW, this->dW_local);
+
   t_localpp_step_pp.stop();
 }
 
-template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
-  Timer t_localpp_step_pp("localpp_step_pp");
-  t_localpp_step_pp.start();
-
-  if (this->world->rank == 0) {
-    cout << "***** pairwise perturbation step *****" << endl;
-  }
-
-  for (int i = 0; i < this->order; i++) {
+template <typename dtype> double CPPPLocalOptimizer<dtype>::pp_solve_one_mode(int i) {
     CPPPOptimizer<dtype>::mttkrp_approx(
         i, this->dW_local, this->local_mttkrp->mttkrp_local_mat[i]);
     this->local_mttkrp->post_mttkrp_reduce(i);
@@ -189,33 +176,56 @@ template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
 
     CPOptimizer<dtype>::update_S(i);
     spd_solve(*this->M[i], *this->update_W[i], this->S);
-    pp_update_after_solve(i);
+}
 
-    this->local_mttkrp->distribute_W(i, this->local_mttkrp->W,
-                                     this->local_mttkrp->W_local);
-    this->local_mttkrp->distribute_W(i, this->dW, this->dW_local);
+template <typename dtype> double CPPPLocalOptimizer<dtype>::step_pp() {
+  Timer t_localpp_step_pp("localpp_step_pp");
+  t_localpp_step_pp.start();
+
+  if (this->world->rank == 0) {
+    cout << "***** pairwise perturbation step *****" << endl;
   }
 
-  int num_bigupdate = 0;
-  for (int i = 0; i < this->order; i++) {
-    double dW_norm = this->dW[i]->norm2();
-    double W_norm = this->W[i]->norm2();
-
-    if (this->world->rank == 0) {
-      cout << dW_norm / W_norm << endl;
+  if (this->ppmethod == 0) {
+    for (int i = 0; i < this->order; i++) {
+      pp_solve_one_mode(i);
+      // TODO: this line can be faster
+      this->dW[i]->operator[]("ij") += this->update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
+      pp_update_after_solve(i);
     }
-
-    if (dW_norm / W_norm > this->tol_restart_dt) {
-      num_bigupdate += 1;
+    int num_bigupdate = 0;
+    for (int i = 0; i < this->order; i++) {
+      double dW_norm = this->dW[i]->norm2();
+      double W_norm = this->W[i]->norm2();
+      if (this->world->rank == 0) cout << dW_norm / W_norm << endl;
+      if (dW_norm / W_norm > this->tol_restart_dt) {
+        num_bigupdate += 1;
+      }
     }
-  }
-  if (num_bigupdate > 0) {
-    this->pp = false;
-    this->reinitialize_tree = false;
+    if (num_bigupdate > 0) {
+      this->pp = false;
+      this->reinitialize_tree = false;
+    }
+  } else if (this->ppmethod == 1) {
+    for (int i = 0; i < this->order; i++) {
+      pp_solve_one_mode(i);
+      this->dW[i]->operator[]("ij") += this->update_W[i]->operator[]("ij") - this->W[i]->operator[]("ij");
+      double dW_norm = this->dW[i]->norm2();
+      double W_norm = this->W[i]->norm2();
+      if (this->world->rank == 0) cout << dW_norm / W_norm << endl;
+      if (dW_norm / W_norm > this->tol_restart_dt) {
+        this->pp = false;
+        this->reinitialize_tree = false;
+        this->pp_stop_mode = (i + this->order - 1) % this->order;
+        break;
+      }
+      pp_update_after_solve(i);
+      this->pp_stop_mode = i % this->order;
+    }
   }
 
   t_localpp_step_pp.stop();
-  return 1.;
+  return 1. * (this->pp_stop_mode + 1) / this->order;
 }
 
 template <typename dtype> double CPPPLocalOptimizer<dtype>::step() {

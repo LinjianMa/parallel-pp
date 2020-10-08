@@ -141,8 +141,7 @@ bool CPD<dtype, Optimizer>::als(double tol, double Vnorm, double timelimit,
 
   while (fabs(sweeps - maxsweep) > 1e-5 && sweeps < maxsweep) {
     // print the gradient norm
-    if (sweeps - int(sweeps) == 0 &&
-        (int(sweeps) % resprint == 0 || sweeps == 0)) {
+    if (iters % resprint == 0 || sweeps == 0) {
       double st_time1 = MPI_Wtime();
       update_gradnorm();
       // residual

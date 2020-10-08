@@ -25,6 +25,8 @@ public:
 
   void pp_update_after_solve(int i);
 
+  double pp_solve_one_mode(int i);
+
   void configure(Tensor<dtype> *input, Matrix<dtype> **mat, Matrix<dtype> *grad,
                  double lambda);
 
@@ -33,6 +35,8 @@ public:
   Matrix<> S_local_temp;
   Matrix<> **WTW_local = NULL;
   Matrix<> **WTdW_local = NULL;
+
+  int pp_stop_mode = 0; // used when ppmethod = 1
 };
 
 #include "cp_pp_local_optimizer.cxx"

@@ -148,6 +148,22 @@ void PPDimensionTree::get_parentnode(vector<int> nodeindex,
       }
     }
   }
+  // third level intermediate -> second level intermediate
+  if (nodeindex.size() == this->order - 3 && this->ppmethod == 1) {
+    if (nodeindex[0] == 0) {
+      contract_index = this->order - 1;
+      parent_index = {contract_index};
+      for (auto const &x : nodeindex) {
+        parent_index.push_back(x);
+      }
+    } else {
+      parent_index = nodeindex;
+      contract_index = (nodeindex[nodeindex.size()-1] + 1) % this->order;
+      parent_index.push_back(contract_index);
+    }
+    parent_nodename = get_nodename(parent_index);
+    return;
+  }
 
   vector<int> comp_index(this->order);
   vector<int>::iterator it;

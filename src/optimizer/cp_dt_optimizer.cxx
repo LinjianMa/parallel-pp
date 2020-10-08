@@ -162,11 +162,7 @@ void CPDTOptimizer<dtype>::mttkrp_map_init(int left_index, World *dw,
 template <typename dtype>
 void CPDTOptimizer<dtype>::mttkrp_map_DT(string index, World *dw,
                                          Matrix<> **mat, Tensor<> *T) {
-  Timer t_mttkrp_map_DT("multi-TTV");
-  t_mttkrp_map_DT.start();
-
   char const *index_char = index.c_str();
-
   char const *parent_index = dt->parent[index].c_str();
   if (mttkrp_exist_map.find(parent_index) == mttkrp_exist_map.end()) {
     mttkrp_map_DT(parent_index, dw, mat, T);
@@ -193,8 +189,6 @@ void CPDTOptimizer<dtype>::mttkrp_map_DT(string index, World *dw,
         mat[indexes[W_index]]->operator[](mat_index);
   }
   mttkrp_exist_map[index] = true;
-
-  t_mttkrp_map_DT.stop();
 }
 
 template <typename dtype> void CPDTOptimizer<dtype>::solve_one_mode(int i) {
@@ -205,7 +199,10 @@ template <typename dtype> void CPDTOptimizer<dtype>::solve_one_mode(int i) {
   vec2str(mat_index, mat_seq);
 
   if (mttkrp_exist_map.find(mat_seq) == mttkrp_exist_map.end()) {
+    Timer t_mttkrp_map_DT("multi-TTV");
+    t_mttkrp_map_DT.start();
     mttkrp_map_DT(mat_seq, this->world, this->W, this->V);
+    t_mttkrp_map_DT.stop();
   }
   this->M[ii]->operator[]("ij") = mttkrp_map[mat_seq]->operator[]("ij");
 

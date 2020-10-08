@@ -2,15 +2,15 @@
 //#define ERR_REPORT
 
 void subsetsUtil(vector<int> &A, vector<vector<int>> &res, vector<int> &subset,
-                 int index, int min_length) {
-  if (subset.size() >= min_length) {
+                 int index, int length) {
+  if (subset.size() == length) {
     res.push_back(subset);
   }
   for (int i = index; i < A.size(); i++) {
     // include the A[i] in subset.
     subset.push_back(A[i]);
     // move onto the next element.
-    subsetsUtil(A, res, subset, i + 1, min_length);
+    subsetsUtil(A, res, subset, i + 1, length);
     // exclude the A[i] from subset and triggers backtracking.
     subset.pop_back();
   }
@@ -18,12 +18,15 @@ void subsetsUtil(vector<int> &A, vector<vector<int>> &res, vector<int> &subset,
 }
 
 // below function returns the subsets of vector A.
-vector<vector<int>> subsets(vector<int> &A, int min_length) {
+vector<vector<int>> subsets(vector<int> &A, int length) {
+  Timer t_subsets("subsets");
+  t_subsets.start();
   vector<int> subset;
   vector<vector<int>> res;
   // keeps track of current element in vector A;
   int index = 0;
-  subsetsUtil(A, res, subset, index, min_length);
+  subsetsUtil(A, res, subset, index, length);
+  t_subsets.stop();
   return res;
 }
 

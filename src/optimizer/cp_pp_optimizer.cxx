@@ -160,9 +160,9 @@ void CPPPOptimizer<dtype>::mttkrp_approx_second_correction(int i, Matrix<> &S,
     S_temp["ij"] = 1.;
     for (auto const &j : j_list) {
       if (find(dW_indices.begin(), dW_indices.end(), j) != dW_indices.end()) {
-        S_temp["ij"] = S_temp["ij"] * WTdW[j]->operator[]("ij");
+        S_temp["ij"] *= WTdW[j]->operator[]("ij");
       } else {
-        S_temp["ij"] = S_temp["ij"] * WTW[j]->operator[]("ij");
+        S_temp["ij"] *= WTW[j]->operator[]("ij");
       }
     }
     S["ij"] += S_temp["ij"];
@@ -174,9 +174,9 @@ void CPPPOptimizer<dtype>::mttkrp_approx_second_correction(int i, Matrix<> &S,
         S_temp["ij"] = 1.;
         for (auto const &j : j_list) {
           if (j == ii) {
-            S_temp["ij"] = S_temp["ij"] * WTdW[j]->operator[]("ij");
+            S_temp["ij"] *= WTdW[j]->operator[]("ij");
           } else {
-            S_temp["ij"] = S_temp["ij"] * (WTW[j]->operator[]("ij") - WTdW[j]->operator[]("ij"));
+            S_temp["ij"] *= (WTW[j]->operator[]("ij") - WTdW[j]->operator[]("ij"));
           }
         }
         S["ij"] += S_temp["ij"];

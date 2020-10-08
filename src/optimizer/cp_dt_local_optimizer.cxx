@@ -69,9 +69,12 @@ void CPDTLocalOptimizer<dtype>::solve_one_mode(int i) {
   vec2str(mat_index, mat_seq);
 
   if (this->mttkrp_exist_map.find(mat_seq) == this->mttkrp_exist_map.end()) {
+    Timer t_mttkrp_map_DT("multi-TTV");
+    t_mttkrp_map_DT.start();
     CPDTOptimizer<dtype>::mttkrp_map_DT(mat_seq, local_mttkrp->sworld,
                                         local_mttkrp->W_local,
                                         local_mttkrp->V_local);
+    t_mttkrp_map_DT.stop();
   }
   local_mttkrp->mttkrp_local_mat[ii]->operator[]("ij") =
       this->mttkrp_map[mat_seq]->operator[]("ij");
@@ -126,7 +129,7 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_dt() {
   return 0.5;
 }
 
-template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
+template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt_specific_subtree(int left_index) {
   Timer t_step_msdt("step_msdt");
   t_step_msdt.start();
   // clear the Hash Table
@@ -144,27 +147,31 @@ template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
   // consider init_pp
   if (this->renew_ppoperator == true) {
     CPDTOptimizer<dtype>::construct_inter_for_pp(
-        local_mttkrp->sworld, local_mttkrp->V_local->lens, this->left_index);
+        local_mttkrp->sworld, local_mttkrp->V_local->lens, left_index);
     this->mttkrp_map[this->seq_tree_top] =
         this->inter_for_pp[this->inter_for_pp.size() - 1];
   }
 
   // reinitialize
-  this->dt->update_indexes(this->indexes, this->left_index);
+  this->dt->update_indexes(this->indexes, left_index);
   CPDTOptimizer<dtype>::mttkrp_map_init(
-      this->left_index, local_mttkrp->sworld, local_mttkrp->W_local,
-      local_mttkrp->trans_V_local_map[this->left_index],
-      local_mttkrp->trans_V_str_map[this->left_index].c_str(),
+      left_index, local_mttkrp->sworld, local_mttkrp->W_local,
+      local_mttkrp->trans_V_local_map[left_index],
+      local_mttkrp->trans_V_str_map[left_index].c_str(),
       local_mttkrp->V_local->lens);
 
   // iteration on W[i]
   for (int i = 0; i < this->indexes.size(); i++) {
     solve_one_mode(i);
   }
-  this->left_index = (this->left_index + this->order - 1) % this->order;
-
   t_step_msdt.stop();
   return 1. * (this->order - 1) / this->order;
+}
+
+template <typename dtype> double CPDTLocalOptimizer<dtype>::step_msdt() {
+  double sweeps = step_msdt_specific_subtree(this->left_index);
+  this->left_index = (this->left_index + this->order - 1) % this->order;
+  return sweeps;
 }
 
 template <typename dtype> double CPDTLocalOptimizer<dtype>::step() {
