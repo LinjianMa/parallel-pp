@@ -117,8 +117,8 @@ void gradient_CP(Tensor<> &V, Matrix<> *W, Matrix<> *grad_W, World &dw);
 
 void char_string_copy(char *a, int start_a, string &b, int start_b, int len);
 
-Tensor<> Gen_collinearity(int *lens, int dim, int R, double col_min,
-                          double col_max, World &dw);
+void gen_collinearity(Tensor<> &V, int *lens, int dim, int R, double col_min,
+                          double col_max, int seed, World &dw, vector<int> processor_mesh);
 
 void print_str(char *str);
 

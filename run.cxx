@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
   char *tensor; // which tensor    c / r / r2 / o /
   int method;   // 0 simple 1 Local-simple 2 DT 3 Local-DT 4 PP 5 Local-PP
   int ppmethod;   // 0 simple pp 1 new pp
+  int seed = 1;
   bool use_msdt = false;
   bool renew_ppoperator = false;
   double update_percentage_pp; // pp update ratio. For each sweep only update
@@ -74,6 +75,9 @@ int main(int argc, char **argv) {
   }
   if (getCmdOption(input_str, input_str + in_num, "-ppmethod")) {
     ppmethod = atoi(getCmdOption(input_str, input_str + in_num, "-ppmethod"));
+  }
+  if (getCmdOption(input_str, input_str + in_num, "-seed")) {
+    seed = atoi(getCmdOption(input_str, input_str + in_num, "-seed"));
   }
   if (getCmdOption(input_str, input_str + in_num, "-msdt")) {
     int msdt = atoi(getCmdOption(input_str, input_str + in_num, "-msdt"));
@@ -206,7 +210,7 @@ int main(int argc, char **argv) {
     IASSERT(sizes.size() == dim);
 
     if (dw.rank == 0) {
-      cout << "  tensor=  " << tensor << "  method=  " << method << "  ppmethod=  " << ppmethod << endl;
+      cout << "  tensor=  " << tensor << "  method=  " << method << "  ppmethod=  " << ppmethod << "  seed=  " << seed << endl;
       cout << "  dim=  " << dim << "  rank=  " << R
            << "  use_msdt=  " << use_msdt
            << "  renew_ppoperator=  " << renew_ppoperator << endl;
@@ -240,20 +244,7 @@ int main(int argc, char **argv) {
       int lens[dim];
       for (int i = 0; i < dim; i++)
         lens[i] = sizes[i];
-      char chars[] = {'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
-                      's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '\0'};
-      char arg[dim + 1];
-      arg[dim] = '\0';
-      for (int i = 0; i < dim; i++) {
-        arg[i] = chars[i];
-      }
-      V = Gen_collinearity(lens, dim, R, col_min, col_max, dw);
-      Tensor<> V_noise = Tensor<>(dim, issparse, lens, dw);
-      V_noise.fill_random(-1, 1);
-      double noise_norm = V_noise.norm2();
-      double V_norm = V.norm2();
-      V_noise[arg] = ratio_noise * V_norm / noise_norm * V_noise[arg];
-      V[arg] = V[arg] + V_noise[arg];
+      gen_collinearity(V, lens, dim, R, col_min, col_max, seed, dw, processor_mesh);
     } else if (tensor[0] == 'r') {
       if (strlen(tensor) > 1 && tensor[1] == '2') {
         // r2 : random tensor

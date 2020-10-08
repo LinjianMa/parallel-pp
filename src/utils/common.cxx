@@ -373,103 +373,34 @@ void build_V_vec(Tensor<> &V, Vector<> *W, int order, World &dw) {
   V = V_temp;
 }
 
-Tensor<> Gen_collinearity(int *lens, int dim, int R, double col_min,
-                          double col_max, World &dw) {
-  // build chars
-  char chars[] = {'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r',
-                  's', 't', 'u', 'v', 'w', 'x', 'y', 'z', '\0'};
-  char arg[dim + 1];
-  arg[dim] = '\0';
+void gen_collinearity(Tensor<> &V, int *lens, int dim, int R, double col_min,
+                          double col_max, int seed, World &dw, vector<int> processor_mesh) {
+  assert(col_min >= 0. && col_max <= 1.);
+  for (int i=0; i<dim; i++) assert(lens[i] >= R);
+  srand(seed);
+  double rand_num = 1. * (rand() % 10000) / 10000 * (col_max - col_min) + col_min;
+  Matrix<> **W = (Matrix<> **)malloc(dim * sizeof(Matrix<> *));
   for (int i = 0; i < dim; i++) {
-    arg[i] = chars[i];
+    W[i] = new Matrix<>(lens[i], R, dw);
+    Matrix<> gamma = Matrix<>(R, R);
+    gamma["ij"] = rand_num;
+    gamma["ii"] = 1.;
+    Matrix<> LT;
+    gamma.cholesky(LT);
+    LT["ij"] = LT["ji"];
+    Matrix<> mat = Matrix<>(lens[i], lens[i]);
+    mat.fill_random(0., 1.);
+    Matrix<> U, VT;
+    Vector<> s;
+    mat.svd(U, s, VT, R);
+    W[i]->operator[]("ij") = U["ik"] * LT["kj"];
+    // // this is for check
+    // LT["ij"] = W[i]->operator[]("ki") * W[i]->operator[]("kj");
+    // LT.print();
   }
-  // build vectors
-  Vector<> **vec = new Vector<> *[R];
-  // range over different modes
-  for (int i = 0; i < R; i++) {
-    vec[i] = new Vector<>[dim];
-    // range over different ranks
-    for (int j = 0; j < dim; j++) {
-      vec[i][j] = Vector<>(lens[j]);
-      vec[i][j].fill_random(0, 1);
-    }
-  }
-  for (int j = 0; j < dim; j++) {
-    for (int i = 1; i < R; i++) {
-      bool condition = false;
-      while (condition == false) {
-        int k = 0;
-        for (; k < i; k++) {
-          double col = collinearity(vec[i][j], vec[k][j]);
-          if (dw.rank == 0)
-            cout << col << endl;
-          if (col < col_min || col > col_max) {
-            if (dw.rank == 0)
-              cout << "resellect" << endl;
-            break;
-          }
-        }
-        if (k == i)
-          condition = true;
-        else
-          vec[i][j].fill_random(0, 1);
-      }
-    }
-  }
-
-  // Vector<> lambda = Vector<>[R];
-  // lambda.fill_random(0.2,0.8);
-  //
-  Tensor<> X(dim, lens, dw);
-  for (int i = 0; i < R; i++) {
-    double lambda_;
-    lambda_ = 0.2 + 0.6 / R * (i + 1); // rand()%600 *1./1000 + 0.2;
-    if (dw.rank == 0)
-      cout << "lambda=" << lambda_ << endl;
-    Tensor<> X_sub;
-    build_V_vec(X_sub, vec[i], dim, dw);
-    X[arg] = X[arg] + lambda_ * X_sub[arg];
-  }
-  for (int i = 0; i < R; i++) {
-    delete[] vec[i];
-  }
-  delete[] vec;
-  return X;
+  build_V(V, W, dim, dw, processor_mesh);
+  delete[] W;
 }
-
-// /**
-//  * \brief Identity tensor: I x I x I x ...
-//  */
-// Tensor<> identitiy_tensor(int N,
-//                        int s,
-//                        World & dw) {
-//  int d = N/2;
-//  Matrix<> ident = Matrix<>(s,s,SP,dw);
-//  ident["ii"] = 1.;
-
-//  int *lens = new int[N];
-//  for (int i=0; i<N; i++) lens[i]=s;
-//  Tensor<> I(N,true,lens,dw);
-
-//  Tensor<> * I_temp = new Tensor<>;
-//  (*I_temp) = ident;
-//  for (int i=1; i<d; i++) {
-//      Tensor<> I_temp2 = (*I_temp);
-//      // lens
-//      int *lens_temp = new int[2*i+2];
-//      for (int jj=0; jj<2*i+2; jj++) lens_temp[jj]=s;
-//      // I_temp
-//      I_temp = new Tensor<>(2*i+2,true,lens_temp,dw);
-//      //build char
-//      char seq_I2[2*i+1]; seq_I2[2*i] = '\0';
-//      char seq_I1[2*i+3]; seq_I1[2*i+2] = '\0';
-//      for (int jj=0; jj<(2*i+2); jj++) seq_I1[jj] = 'a'+jj;
-//      for (int jj=2; jj<(2*i+2); jj++) seq_I2[jj-2] = 'a'+jj;
-//      (*I_temp)[seq_I1] = I_temp2[seq_I2]*ident["ab"];
-//  }
-//  I = (*I_temp);
-//     return I;
-// }
 
 /**
  * \brief Identity tensor: I x I x I x ...
@@ -657,41 +588,6 @@ void laplacian_tensor(Tensor<> &V, int N, int s, bool sparse_V, World &dw) {
 }
 
 void Normalize(Matrix<> *W, int N, World &dw) {
-  /*
-      int R = W[0].ncol;
-      double norm[N][R];
-      double norm_sum[R];
-      for (int i=0; i<R; i++) {
-          norm_sum[i] = 1.;
-          Matrix<> transform(R,1,dw);
-          int64_t inds_t[1];
-          double vals_t[1];
-          inds_t[0] = i;
-          if(dw.rank==0) vals_t[0] = 1.;
-          else vals_t[0] = 0;
-          transform.write(1,inds_t,vals_t);
-          for (int j=0; j<N; j++) {
-              Matrix<> W_part(W[j].nrow,1,dw);
-              W_part["ij"] = W[j]["ik"]*transform["kj"];
-              norm[j][i] = W_part.norm2();
-              norm_sum[i] *= norm[j][i];
-          }
-          norm_sum[i] = pow(norm_sum[i],1./N);
-      }
-      // update the W
-      for (int j=0; j<N; j++) {
-          Matrix<> transform(R,R,dw);
-          int64_t inds_t[R];
-          double vals_t[R];
-          for (int jj=0; jj<R; jj++) {
-              inds_t[jj] = jj*R+jj;
-              if(dw.rank==0) vals_t[jj] = norm_sum[jj]/norm[j][jj];
-              else vals_t[0] = 0;
-          }
-          transform.write(R,inds_t,vals_t);
-          W[j]["ij"] = W[j]["ik"]*transform["kj"];
-      }
-  */
   double norm = 1;
   for (int i = 0; i < N; i++) {
     norm = norm * W[i].norm2();
